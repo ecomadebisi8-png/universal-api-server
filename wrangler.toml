@@ -7,10 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "development"
 API_VERSION = "v1"
 
-[[r2_buckets]]
-binding = "UPLOADS"
-bucket_name = "universal-api-uploads"
-
 [[d1_databases]]
 binding = "DB"
 database_name = "universal-api-db"
+database_id = "7485bcbd-91cc-4c5e-98a0-282e84b0c153"
