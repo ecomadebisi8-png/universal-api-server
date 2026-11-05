@@ -7,5 +7,4 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "development"
 API_VERSION = "v1"
 
-[deploy]
 workers_dev = true
