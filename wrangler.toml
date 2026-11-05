@@ -6,6 +6,3 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "development"
 API_VERSION = "v1"
-
-[[observability.enabled]]
-logs = "send"
