@@ -106,14 +106,174 @@ projectBeta.post('/items', async (c) => {
 })
 
 /* ------------------------------------------------------------------ */
+/*  Sub-router: Storage uploads (R2)                                  */
+/* ------------------------------------------------------------------ */
+const storage = new Hono<{ Bindings: { UPLOADS: R2Bucket; DB: D1Database } }>()
+
+// Initialize D1 table on first request
+storage.get('/_init', async (c) => {
+  await c.env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS uploads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      filename TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      content_type TEXT,
+      uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`
+  ).run()
+  return c.json({ status: 'd1_table_ready' })
+})
+
+// List all uploaded files
+storage.get('/list', async (c) => {
+  const listed = await c.env.UPLOADS.list()
+  const files = listed.objects.map((obj) => ({
+    key: obj.key,
+    size: obj.size,
+    uploaded: obj.uploaded,
+  }))
+  return c.json({ files, count: files.length })
+})
+
+// Get metadata for a specific file
+storage.get('/:key/meta', async (c) => {
+  const key = c.req.param('key')
+  const obj = await c.env.UPLOADS.head(key)
+  if (!obj) {
+    return c.json({ error: 'File not found' }, 404)
+  }
+  return c.json({
+    key,
+    size: obj.size,
+    contentType: obj.httpMetadata?.contentType,
+    uploaded: obj.uploaded,
+  })
+})
+
+// Download / stream a file
+storage.get('/:key', async (c) => {
+  const key = c.req.param('key')
+  const obj = await c.env.UPLOADS.get(key)
+  if (!obj) {
+    return c.json({ error: 'File not found' }, 404)
+  }
+  return c.body(obj.body, 200, {
+    'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
+    'Content-Length': String(obj.size),
+  })
+})
+
+// Upload a file (multipart or raw body)
+storage.post('/', async (c) => {
+  const form = await c.req.parseBody()
+  const file = form['file']
+
+  if (!file || !(file instanceof File)) {
+    return c.json({ error: 'No file provided' }, 400)
+  }
+
+  const key = `${Date.now()}-${file.name}`
+  await c.env.UPLOADS.put(key, file)
+
+  // Also record in D1
+  await c.env.DB.prepare(
+    `INSERT INTO uploads (key, filename, size, content_type) VALUES (?, ?, ?, ?)`
+  ).bind(key, file.name, file.size, file.type).run()
+
+  return c.json({
+    key,
+    filename: file.name,
+    size: file.size,
+    content_type: file.type,
+    uploaded: true,
+  }, 201)
+})
+
+// Delete a file
+storage.delete('/:key', async (c) => {
+  const key = c.req.param('key')
+  const obj = await c.env.UPLOADS.head(key)
+  if (!obj) {
+    return c.json({ error: 'File not found' }, 404)
+  }
+  await c.env.UPLOADS.delete(key)
+  await c.env.DB.prepare(`DELETE FROM uploads WHERE key = ?`).bind(key).run()
+  return c.json({ deleted: true, key })
+})
+
+/* ------------------------------------------------------------------ */
+/*  Sub-router: Database (D1)                                         */
+/* ------------------------------------------------------------------ */
+const database = new Hono<{ Bindings: { DB: D1Database } }>()
+
+// Initialize tables
+database.get('/_init', async (c) => {
+  await c.env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`
+  ).run()
+  await c.env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS uploads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      filename TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      content_type TEXT,
+      uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`
+  ).run()
+  return c.json({ status: 'tables_ready' })
+})
+
+// List all items
+database.get('/items', async (c) => {
+  const { results } = await c.env.DB.prepare('SELECT * FROM items ORDER BY id DESC').all()
+  return c.json({ items: results, count: results?.length || 0 })
+}
+
+// Create an item
+database.post('/items', async (c) => {
+  const body = await c.req.json<{ name?: string }>()
+  const result = await c.env.DB.prepare(
+    `INSERT INTO items (name) VALUES (?)`
+  ).bind(body.name ?? 'untitled').run()
+  return c.json({
+    id: result.meta?.last_row_id,
+    name: body.name ?? 'untitled',
+    created: true,
+  }, 201)
+})
+
+// Get single item
+database.get('/items/:id', async (c) => {
+  const id = c.req.param('id')
+  const { results } = await c.env.DB.prepare('SELECT * FROM items WHERE id = ?').bind(id).first()
+  if (!results) {
+    return c.json({ error: 'Item not found' }, 404)
+  }
+  return c.json({ item: results })
+})
+
+// Delete an item
+database.delete('/items/:id', async (c) => {
+  const id = c.req.param('id')
+  await c.env.DB.prepare('DELETE FROM items WHERE id = ?').bind(id).run()
+  return c.json({ deleted: true, id })
+})
+
+/* ------------------------------------------------------------------ */
 /*  Main app                                                          */
 /* ------------------------------------------------------------------ */
-const app = new Hono()
+const app = new Hono<{ Bindings: { UPLOADS: R2Bucket; DB: D1Database } }>()
 
 // --- Global middleware ---
-app.use('*', logger())                                    // request logging
-app.use('*', cors({ origin: '*' }))                       // CORS for any frontend
-app.use('*', prettyJSON())                                // pretty JSON responses
+app.use('*', logger())
+app.use('*', cors({ origin: '*' }))
+app.use('*', prettyJSON())
 
 // --- Global JSON error handler ---
 app.onError((err, c) => {
@@ -137,5 +297,7 @@ app.route('/', health)
 app.route('/api/v1/auth', auth)
 app.route('/api/v1/project-alpha', projectAlpha)
 app.route('/api/v1/project-beta', projectBeta)
+app.route('/api/v1/storage', storage)
+app.route('/api/v1/db', database)
 
 export default app

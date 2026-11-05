@@ -6,3 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "development"
 API_VERSION = "v1"
+
+[[r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "universal-api-uploads"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "universal-api-db"
