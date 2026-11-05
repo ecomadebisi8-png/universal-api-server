@@ -126,7 +126,7 @@ database.get('/_init', async (c) => {
 database.get('/items', async (c) => {
   const { results } = await c.env.DB.prepare('SELECT * FROM items ORDER BY id DESC').all()
   return c.json({ items: results, count: results?.length || 0 })
-}
+})
 
 // Create an item
 database.post('/items', async (c) => {
@@ -144,11 +144,11 @@ database.post('/items', async (c) => {
 // Get single item
 database.get('/items/:id', async (c) => {
   const id = c.req.param('id')
-  const { results } = await c.env.DB.prepare('SELECT * FROM items WHERE id = ?').bind(id).first()
-  if (!results) {
+  const item = await c.env.DB.prepare('SELECT * FROM items WHERE id = ?').bind(id).first()
+  if (!item) {
     return c.json({ error: 'Item not found' }, 404)
   }
-  return c.json({ item: results })
+  return c.json({ item })
 })
 
 // Delete an item
