@@ -2,6 +2,7 @@
   "name": "universal-api-server",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Universal API server built with TypeScript + Hono for Cloudflare Workers",
   "scripts": {
     "dev": "wrangler dev",
@@ -10,11 +11,12 @@
     "start": "wrangler dev"
   },
   "dependencies": {
+    "bcrypt": "^5.1.0",
     "hono": "^4.5.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240529.0",
     "typescript": "^5.4.0",
-    "wrangler": "^3.57.0"
+    "wrangler": "^4.158.0"
   }
 }
