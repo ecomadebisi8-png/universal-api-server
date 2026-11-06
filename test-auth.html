@@ -1240,7 +1240,7 @@
         if (statusPillEl) statusPillEl.className = 'statusPill online';
         if (serverStatus) {
           serverStatus.textContent = 'Online (' + data.status + ')';
-          serverStatus.style.color = 'var(--success)';
+          serverStatus.style.color = '#22c55e';
         }
         if (dashboardHealthEl) dashboardHealthEl.innerHTML = '<span style="color:var(--success);">&#10004; ' + data.status + '</span> &middot; ' + data.service + ' v' + data.version;
         addResponse('GET', '/', data, true);
@@ -1254,7 +1254,7 @@
         if (statusPillEl) statusPillEl.className = 'statusPill';
         if (serverStatus) {
           serverStatus.textContent = 'Offline';
-          serverStatus.style.color = 'var(--danger)';
+          serverStatus.style.color = '#ef4444';
         }
         if (dashboardHealthEl) dashboardHealthEl.innerHTML = '<span style="color:var(--danger);">&#10006; Offline</span>';
         addResponse('GET', '/', { error: err.message }, false);
