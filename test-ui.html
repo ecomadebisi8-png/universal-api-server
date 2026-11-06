@@ -257,13 +257,13 @@ if(authAlert)authAlert.style.display='none';
 btn.disabled=true;
 btn.textContent=isSignup?'Creating...':'Sending...';
 try{
-const r=await fetch(API+'/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+const r=await fetch(API+'/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,pass})});
 const d=await r.json();
 if(!r.ok){showAuthAlert(d.error||'Register failed');btn.disabled=false;btn.textContent='Create Account';return;}
 pendingEmail=email;
 pendingPassword=pass;
 const r2=await fetch(API+'/api/v1/auth/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
-const d2=await r.json();
+const d2=await r2.json();
 if(r2.ok){
 pendingOtpEmail=email;
 st('otpTargetEmail',email);
@@ -403,7 +403,7 @@ if(st)st.textContent='Offline';
 if(sp)sp.className='statusPill';
 if(dh)dh.innerHTML='<span style="color:var(--danger);">&#10006; Offline</span>';
 addResponse('GET','/',{error:err.message},false);
-}finally(){
+} finally {
 const btn=document.querySelector('#dashboardHealth').previousElementSibling;
 if(btn){btn.disabled=false;btn.textContent='Check Health';}
 }
@@ -677,6 +677,71 @@ return div.innerHTML;
 setMode('signup');
 checkHealth();
 setInterval(checkHealth,30000);
+
+/* =========================================
+   AUTHENTICATION API
+========================================= */
+
+async function doRegister2() {
+    const email = $('regEmail2')?.value.trim();
+    const password = $('regPassword2')?.value.trim();
+    const result = $('regResult2');
+
+    if (!email || !password) {
+        showMessage(result, 'Email and password are required.');
+        return;
+    }
+
+    try {
+        const data = await apiRequest('/api/v1/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+
+        showMessage(result, 'Account created successfully.', true);
+
+        addResponse('POST', '/api/v1/auth/register', data, true);
+
+    } catch (error) {
+        showMessage(result, error.message);
+        addResponse('POST', '/api/v1/auth/register', {
+            error: error.message
+        }, false);
+    }
+}
+
+async function doLogin() {
+    const email = $('loginEmail2')?.value.trim();
+    const password = $('loginPassword2')?.value.trim();
+    const result = $('loginResult2');
+
+    if (!email || !password) {
+        showMessage(result, 'Email and password are required.');
+        return;
+    }
+
+    try {
+        const data = await apiRequest('/api/v1/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+
+        saveSession(data);
+        enterApp();
+
+        showMessage(result, 'Successfully signed in.', true);
+
+        st(
+            'tokensDisplay2',
+            `Access: ${accessToken}
+
+Refresh: ${refreshToken}`
+        );
+    } catch (error) {
+        showMessage(result, error.message);
+        addResponse('POST', '/api/v1/auth/login', {error: error.message}, false);
+    }
+}
 </script>
 </body>
 </html>
