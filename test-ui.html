@@ -165,10 +165,10 @@ tr:hover{background:var(--card-hover);}
 
 <div id="section-auth" class="tabContent">
 <div class="authState"><div class="dot"></div><span id="authStatusText">Not logged in</span></div>
-<div class="card"><h2><span class="icon">📝</span>Register</h2><div class="form-group"><label for="regEmail2">Email</label><input type="email" id="regEmail2" placeholder="you@example.com"/></div><div class="form-group"><label for="regPassword2">Password</label><input type="password" id="regPassword2" placeholder="••••••••"/></div><button class="btn btn-primary" onclick="doRegister2()">Create Account</button><div id="regResult2" class="empty"></div></div>
-<div class="card"><h2><span class="icon">🔑</span>Login</h2><div class="form-group"><label for="loginEmail2">Email</label><input type="email" id="loginEmail2" placeholder="you@example.com"/></div><div class="form-group"><label for="loginPassword2">Password</label><input type="password" id="loginPassword2" placeholder="••••••••"/></div><button class="btn btn-success" onclick="doLogin2()">Sign In</button><div id="loginResult2" class="empty"></div><div id="tokensDisplay2" class="tokenBox"></div></div>
-<div class="card"><h2><span class="icon">👤</span>Profile</h2><button class="btn btn-outline" onclick="doMe2()">Get My Profile</button><div id="meResult2" class="empty"></div></div>
-<div class="card"><h2><span class="icon">🔄</span>Refresh Token</h2><div class="form-group"><label for="refreshToken2">Refresh Token</label><input type="text" id="refreshToken2" placeholder="Paste refresh token"/></div><button class="btn btn-outline" onclick="doRefresh2()">Refresh</button><div id="refreshResult2" class="empty"></div></div>
+<div class="card"><h2><span class="icon">📝</span>Register</h2><div class="form-group"><label for="regEmail2">Email</label><input type="email" id="regEmail2" placeholder="you@example.com"/></div><div class="form-group"><label for="regPassword2">Password</label><input type="password" id="regPassword2" placeholder="••••••••"/></div><button class="btn btn-primary" onclick="doRegister()">Create Account</button><div id="regResult2" class="empty"></div></div>
+<div class="card"><h2><span class="icon">🔑</span>Login</h2><div class="form-group"><label for="loginEmail2">Email</label><input type="email" id="loginEmail2" placeholder="you@example.com"/></div><div class="form-group"><label for="loginPassword2">Password</label><input type="password" id="loginPassword2" placeholder="••••••••"/></div><button class="btn btn-success" onclick="doLogin()">Sign In</button><div id="loginResult2" class="empty"></div><div id="tokensDisplay2" class="tokenBox"></div></div>
+<div class="card"><h2><span class="icon">👤</span>Profile</h2><button class="btn btn-outline" onclick="doMe()">Get My Profile</button><div id="meResult2" class="empty"></div></div>
+<div class="card"><h2><span class="icon">🔄</span>Refresh Token</h2><div class="form-group"><label for="refreshToken2">Refresh Token</label><input type="text" id="refreshToken2" placeholder="Paste refresh token"/></div><button class="btn btn-outline" onclick="doRefresh()">Refresh</button><div id="refreshResult2" class="empty"></div></div>
 </div>
 
 <div id="section-apikeys" class="tabContent">
@@ -194,554 +194,234 @@ tr:hover{background:var(--card-hover);}
 <script>
 const API='https://universal-api-server.ecomadebisi8-94e.workers.dev';
 let accessToken='',refreshToken='',currentUser=null,pendingEmail='',pendingOtpEmail='',isSignup=true,resendInterval=null,expiryInterval=null,resendSecondsLeft=60,expirySecondsLeft=600;
-const authPage=document.getElementById('authPage');
-const app=document.getElementById('app');
-const authAlert=document.getElementById('authAlert');
-const responseLog=document.getElementById('responseLog');
 
-function setMode(mode){
-isSignup=mode==='signup';
-document.getElementById('modeSignup').classList.toggle('active',isSignup);
-document.getElementById('modeLogin').classList.toggle('active',!isSignup);
-document.getElementById('passwordGroup').style.display=isSignup?'block':'none';
-document.getElementById('authTitle').textContent=isSignup?'Create Account':'Sign In';
-document.getElementById('authSubtitle').textContent=isSignup?'Join the Universal API Server':'Welcome back';
-document.getElementById('btnStep1').textContent=isSignup?'Create Account':'Send Code';
-if(authAlert)authAlert.style.display='none';
-document.getElementById('authEmail').value='';
-document.getElementById('authPassword').value='';
-document.getElementById('stepCredentials').style.display='block';
-document.getElementById('stepOtpSent').style.display='none';
-document.getElementById('stepSuccess').style.display='none';
-updateSteps(1);
-}
-function updateSteps(s){
-document.querySelectorAll('.step').forEach((el,i)=>{el.className='step';if(i<s-1)el.classList.add('completed');if(i===s-1)el.classList.add('active');});
-}
-function st(id,t){const el=document.getElementById(id);if(el)el.textContent=t;}
-function sh(elId,show){const el=document.getElementById(elId);if(el)el.style.display=show?'block':'none';}
-function showAuthAlert(msg){if(authAlert){authAlert.textContent=msg;authAlert.className='alert error';authAlert.style.display='block';}}
-function copyOTP(){const el=document.getElementById('otpCodeDisplay');if(!el)return;navigator.clipboard.writeText(el.textContent);const hint=document.getElementById('copyHint');hint.textContent='Copied!';setTimeout(()=>hint.textContent='Click to copy',1500);}
-function startResendTimer(){
-resendSecondsLeft=60;
-const box=document.getElementById('resendTimerBox');
-const val=document.getElementById('resendTimerValue');
-if(box)box.style.display='block';
-if(resendInterval)clearInterval(resendInterval);
-resendInterval=setInterval(()=>{
-resendSecondsLeft--;
-if(val){const m=Math.floor(resendSecondsLeft/60),s=resendSecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');}
-if(resendSecondsLeft<=0){clearInterval(resendInterval);resendInterval=null;if(box)box.style.display='none';}
-},1000);
-}
-function startExpiryTimer(){
-expirySecondsLeft=600;
-const box=document.getElementById('expiryTimerBox');
-const val=document.getElementById('expiryTimerValue');
-if(box)box.style.display='block';
-if(expiryInterval)clearInterval(expiryInterval);
-expiryInterval=setInterval(()=>{
-expirySecondsLeft--;
-if(val){const m=Math.floor(expirySecondsLeft/60),s=expirySecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');if(expirySecondsLeft<=30)val.classList.add('expiring');if(expirySecondsLeft<=0){clearInterval(expiryInterval);expiryInterval=null;val.textContent='00:00';val.classList.add('expiring');}}
-},1000);
-}
-function stopTimers(){if(resendInterval)clearInterval(resendInterval);if(expiryInterval)clearInterval(expiryInterval);}
+function $(id){return document.getElementById(id);}
+function st(id,t){const el=$(id);if(el)el.textContent=t;}
+function sh(id,show,d='block'){const el=$(id);if(el)el.style.display=show?d:'none';}
+function showAuthAlert(msg){const el=$('authAlert');if(el){el.textContent=msg;el.className='alert error';el.style.display='block';}}
+function showMessage(el,msg,success=false){if(!el)return;el.textContent=msg;el.style.color=success?'var(--success)':'var(--danger)';}
+function escapeHtml(str){const div=document.createElement('div');div.textContent=str;return div.innerHTML;}
+function stopTimers(){if(resendInterval)clearInterval(resendInterval);if(expiryInterval)clearInterval(expiryInterval);resendInterval=null;expiryInterval=null;}
 
-async function step1Next(){
-const email=document.getElementById('authEmail').value.trim();
-const pass=document.getElementById('authPassword').value.trim();
-const btn=document.getElementById('btnStep1');
-if(!email){showAuthAlert('Enter email');return;}
-if(isSignup&&!pass){showAuthAlert('Enter password');return;}
-if(authAlert)authAlert.style.display='none';
-btn.disabled=true;
-btn.textContent=isSignup?'Creating...':'Sending...';
-try{
-const r=await fetch(API+'/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,pass})});
-const d=await r.json();
-if(!r.ok){showAuthAlert(d.error||'Register failed');btn.disabled=false;btn.textContent='Create Account';return;}
-pendingEmail=email;
-pendingPassword=pass;
-const r2=await fetch(API+'/api/v1/auth/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
-const d2=await r2.json();
-if(r2.ok){
-pendingOtpEmail=email;
-st('otpTargetEmail',email);
-document.getElementById('otpCodeDisplay').textContent=d2.otp_code||'';
-sh('stepCredentials',false);
-sh('stepOtpSent',true);
-updateSteps(2);
-btn.disabled=false;
-btn.textContent='Create Account';
-startResendTimer();
-startExpiryTimer();
-}else{
-showAuthAlert(r2.error||'OTP failed');
-btn.disabled=false;
-btn.textContent='Create Account';
-}
-}catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent='Create Account';}
-}
-
-function step1Back(){sh('stepOtpSent',false);sh('stepCredentials',true);updateSteps(1);}
-
-async function step2Verify(){
-const codeInput=document.getElementById('otpCodeInput');
-const btn=document.querySelector('#stepOtpSent .btn-primary');
-if(!codeInput||!btn)return;
-const code=codeInput.value.trim();
-if(!code){showAuthAlert('Enter code');return;}
-btn.disabled=true;
-btn.textContent='Verifying…';
-try{
-const r=await fetch(API+'/api/v1/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:pendingOtpEmail,code})});
-const d=await r.json();
-if(!r.ok){showAuthAlert(d.error||'Invalid code');btn.disabled=false;btn.textContent='Verify Code';return;}
-accessToken=d.access_token;
-refreshToken=d.refresh_token;
-currentUser={id:d.user.id,email:d.user.email,role:d.user.role};
-stopTimers();
-sh('stepOtpSent',false);
-sh('stepSuccess',true);
-const tokens=document.getElementById('stepTokens');
-if(tokens){
-tokens.style.display='block';
-tokens.innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';
-}
-updateSteps(3);
-setTimeout(()=>enterApp(),1200);
-}catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent='Verify Code';}
-}
-
-function enterApp(){
-if(authPage)authPage.style.display='none';
-if(app)app.style.display='flex';
-const us=document.getElementById('userSection');
-if(us)us.style.display='block';
-st('userEmail',currentUser.email);
-st('userRole',currentUser.role);
-const av=document.getElementById('userAvatar');
-if(av)av.textContent=currentUser.email.charAt(0).toUpperCase();
-st('authStatusText','Logged in as '+currentUser.email);
-showSection('dashboard');
-checkHealth();
-}
-
-function showSection(name){
-document.querySelectorAll('.tabContent').forEach(t=>t.classList.remove('active'));
-document.querySelectorAll('.navItem').forEach(n=>n.classList.remove('active'));
-const s=document.getElementById('section-'+name);
-const n=document.getElementById('nav'+name.charAt(0).toUpperCase()+name.slice(1));
-if(s)s.classList.add('active');
-if(n)n.classList.add('active');
-const t=document.getElementById('sectionTitle');
-if(t)t.textContent=name.charAt(0).toUpperCase()+name.slice(1);
+async function apiRequest(path,options={}){
+const headers={'Content-Type':'application/json'};
+if(accessToken)headers.Authorization='Bearer '+accessToken;
+if(options.headers)Object.assign(headers,options.headers);
+const r=await fetch(API+path,{...options,headers});
+let d;try{d=await r.json();}catch{d={};}
+if(!r.ok)throw new Error(d.error||d.message||'HTTP '+r.status);
+return d;
 }
 
 function addResponse(method,path,data,ok=true){
-const log=document.getElementById('responseLog');
-if(!log)return;
-const div=document.createElement('div');
-div.className='resultRow';
-const time=new Date().toLocaleTimeString();
-div.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex:1;"><span class="method '+method.toLowerCase()+'">'+method+'</span><span style="font-size:0.8rem;color:var(--muted);">'+path+'</span><span style="font-size:0.75rem;color:var(--muted);margin-left:auto;">'+time+'</span><span class="badge '+(ok?'badge-ok':'badge-err')+'">'+(ok?'OK':'ERROR')+'</span></div><div style="font-size:0.7rem;color:var(--muted);max-width:400px;word-break:break-all;" title="'+JSON.stringify(data)+'">'+(ok?formatResponse(data):(data.error||data.message||String(data)))+'</div>';
-log.prepend(div);
-while(log.children.length>20)log.removeChild(log.lastChild);
+const log=$('responseLog');if(!log)return;
+const div=document.createElement('div');div.className='resultRow';const time=new Date().toLocaleTimeString();
+div.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex:1;"><span class="method '+method.toLowerCase()+'">'+method+'</span><span style="font-size:0.8rem;color:var(--muted);">'+path+'</span><span style="font-size:0.75rem;color:var(--muted);margin-left:auto;">'+time+'</span><span class="badge '+(ok?'badge-ok':'badge-err')+'">'+(ok?'OK':'ERROR')+'</span></div><div style="font-size:0.7rem;color:var(--muted);max-width:400px;word-break:break-all;">'+(ok?formatResponse(data):(data.error||data.message||String(data)))+'</div>';
+log.prepend(div);while(log.children.length>20)log.removeChild(log.lastChild);
 }
 
 function formatResponse(d){
-if(!d)return '—';
-if(d.status==='ok')return '✅ '+d.status+' · '+(d.service||'')+' v'+(d.version||'');
-if(d.created)return '✅ Created: '+d.name+' (id:'+d.id+')';
-if(d.deleted)return '✅ Deleted id:'+d.id;
-if(d.otp_code)return '📧 OTP: '+d.otp_code;
-if(d.key)return '🔑 Key: '+d.key;
-if(Array.isArray(d.items))return '📦 '+d.count+' items';
-if(d.item)return '📄 Item '+d.item.id+': '+d.item.name;
-if(typeof d==='object')return Object.entries(d).map(([k,v])=>k+': '+v).join(' • ');
-return String(d);
+if(!d)return '—';if(d.status==='ok')return '✅ '+d.status+' · '+(d.service||'')+' v'+(d.version||'');if(d.created)return '✅ Created: '+d.name+' (id:'+d.id+')';if(d.deleted)return '✅ Deleted id:'+d.id;if(d.otp_code)return '📧 OTP: '+d.otp_code;if(d.key)return '🔑 Key: '+d.key;if(Array.isArray(d.items))return '📦 '+d.count+' items';if(d.item)return '📄 Item '+d.item.id+': '+d.item.name;if(typeof d==='object')return Object.entries(d).map(([k,v])=>k+': '+v).join(' • ');return String(d);
 }
 
-function setAuthState(loggedIn,user=null){
-currentUser=user;
-if(loggedIn){
-if(authPage)authPage.style.display='none';
-if(app)app.style.display='flex';
-const us=document.getElementById('userSection');
-if(us)us.style.display='block';
-st('userEmail',user.email);
-st('userRole',user.role);
-const av=document.getElementById('userAvatar');
-if(av)av.textContent=user.email.charAt(0).toUpperCase();
-st('authStatusText','Logged in as '+user.email);
-showSection('dashboard');
-}else{
-if(authPage)authPage.style.display='flex';
-if(app)app.style.display='none';
-st('authStatusText','Not logged in');
+function setMode(mode){
+isSignup=mode==='signup';
+$('modeSignup')?.classList.toggle('active',isSignup);
+$('modeLogin')?.classList.toggle('active',!isSignup);
+$('passwordGroup')?.style.display=isSignup?'block':'none';
+st('authTitle',isSignup?'Create Account':'Sign In');
+st('authSubtitle',isSignup?'Join the Universal API Server':'Welcome back');
+st('btnStep1',isSignup?'Create Account':'Send Code');
+$('authEmail')?.value='';$('authPassword')?.value='';
+sh('stepCredentials',true);sh('stepOtpSent',false);sh('stepSuccess',false);stopTimers();
+$('authAlert')?.style.display='none';
+updateSteps(1);
 }
+
+function updateSteps(s){
+document.querySelectorAll('.step').forEach((el,i)=>{el.className='step';if(i<s-1)el.classList.add('completed');if(i===s-1)el.classList.add('active');});
+}
+
+function copyOTP(){const el=$('otpCodeDisplay');if(!el)return;navigator.clipboard.writeText(el.textContent);st('copyHint','Copied!');setTimeout(()=>st('copyHint','Click to copy'),1500);}
+
+function startResendTimer(){
+resendSecondsLeft=60;const box=$('resendTimerBox');const val=$('resendTimerValue');sh('resendTimerBox',true);if(resendInterval)clearInterval(resendInterval);
+resendInterval=setInterval(()=>{resendSecondsLeft--;if(val){const m=Math.floor(resendSecondsLeft/60),s=resendSecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');}if(resendSecondsLeft<=0){clearInterval(resendInterval);resendInterval=null;sh('resendTimerBox',false);}},1000);
+}
+
+function startExpiryTimer(){
+expirySecondsLeft=600;const box=$('expiryTimerBox');const val=$('expiryTimerValue');sh('expiryTimerBox',true);if(expiryInterval)clearInterval(expiryInterval);
+expiryInterval=setInterval(()=>{expirySecondsLeft--;if(val){const m=Math.floor(expirySecondsLeft/60),s=expirySecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');if(expirySecondsLeft<=30)val.classList.add('expiring');if(expirySecondsLeft<=0){clearInterval(expiryInterval);expiryInterval=null;val.textContent='00:00';val.classList.add('expiring');}},1000);
+}
+
+async function step1Next(){
+const email=$('authEmail')?.value.trim();
+const pass=$('authPassword')?.value.trim();
+const btn=$('btnStep1');
+if(!email){showAuthAlert('Enter your email address.');return;}
+if(isSignup&&!pass){showAuthAlert('Enter your password.');return;}
+$('authAlert')?.style.display='none';
+btn.disabled=true;btn.textContent=isSignup?'Creating account...':'Signing in...';
+try{
+if(!isSignup){
+const d=await apiRequest('/api/v1/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})});
+accessToken=d.access_token;refreshToken=d.refresh_token;currentUser={id:d.user.id,email:d.user.email,role:d.user.role};
+enterApp();return;
+}
+const d=await apiRequest('/api/v1/auth/register',{method:'POST',body:JSON.stringify({email,password:pass})});
+pendingEmail=email;pendingPassword=pass;
+const otp=await apiRequest('/api/v1/auth/send-otp',{method:'POST',body:JSON.stringify({email})});
+pendingOtpEmail=email;
+st('otpTargetEmail',email);$('otpCodeDisplay')?.textContent=otp.otp_code||'';$('otpCodeInput')?.value='';
+sh('stepCredentials',false);sh('stepOtpSent',true);updateSteps(2);startResendTimer();startExpiryTimer();
+} catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent=isSignup?'Create Account':'Sign In';}
+}
+
+function step1Back(){stopTimers();sh('stepOtpSent',false);sh('stepCredentials',true);updateSteps(1);$('authAlert')?.style.display='none';}
+
+async function step2Verify(){
+const code=$('otpCodeInput')?.value.trim();const btn=document.querySelector('#stepOtpSent .btn-primary');
+if(!code){showAuthAlert('Enter your verification code.');return;}
+if(!pendingOtpEmail){showAuthAlert('Verification session expired.');return;}
+btn.disabled=true;btn.textContent='Verifying...';
+try{
+const d=await apiRequest('/api/v1/auth/verify-otp',{method:'POST',body:JSON.stringify({email:pendingOtpEmail,code})});
+accessToken=d.access_token;refreshToken=d.refresh_token;currentUser={id:d.user.id,email:d.user.email,role:d.user.role};
+stopTimers();sh('stepOtpSent',false);sh('stepSuccess',true);updateSteps(3);
+const tokens=$('stepTokens');if(tokens){tokens.textContent='Access: '+accessToken+'\n\nRefresh: '+refreshToken;}
+setTimeout(enterApp,1200);
+} catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent='Verify Code';}
+}
+
+function enterApp(){
+if(!currentUser)return;
+sh('authPage',false);sh('app',true,'flex');sh('userSection',true);
+st('userEmail',currentUser.email);st('userRole',currentUser.role||'User');
+$('userAvatar')?.textContent=currentUser.email.charAt(0).toUpperCase();
+st('authStatusText','Logged in as '+currentUser.email);
+showSection('dashboard');checkHealth();
+}
+
+function showSection(name){
+document.querySelectorAll('.tabContent').forEach(el=>el.classList.remove('active'));
+document.querySelectorAll('.navItem').forEach(el=>el.classList.remove('active'));
+const s=$('section-'+name);const n=$('nav'+name.charAt(0).toUpperCase()+name.slice(1));
+s?.classList.add('active');n?.classList.add('active');st('sectionTitle',name.charAt(0).toUpperCase()+name.slice(1));
 }
 
 async function checkHealth(){
-const btn=document.querySelector('#dashboardHealth').previousElementSibling;
-if(btn){btn.disabled=true;btn.innerHTML='<span style="font-size:14px;">Checking…</span>';}
+const btn=$('dashboardHealth')?.previousElementSibling;if(btn){btn.disabled=true;btn.textContent='Checking...';}
 try{
-const r=await fetch(API+'/');
-const d=await r.json();
-const st=document.getElementById('statusText');
-const sp=document.getElementById('statusPill');
-const dh=document.getElementById('dashboardHealth');
-if(st)st.textContent='Online ('+d.status+')';
-if(sp)sp.className='statusPill online';
-if(dh)dh.innerHTML='<span style="color:var(--success);">&#10004; '+d.status+'</span> · '+d.service+' v'+d.version;
-addResponse('GET','/',d,true);
-}catch(err){
-const st=document.getElementById('statusText');
-const sp=document.getElementById('statusPill');
-const dh=document.getElementById('dashboardHealth');
-if(st)st.textContent='Offline';
-if(sp)sp.className='statusPill';
-if(dh)dh.innerHTML='<span style="color:var(--danger);">&#10006; Offline</span>';
-addResponse('GET','/',{error:err.message},false);
-} finally {
-const btn=document.querySelector('#dashboardHealth').previousElementSibling;
-if(btn){btn.disabled=false;btn.textContent='Check Health';}
-}
+const d=await apiRequest('/');st('statusText','Online ('+d.status+')');$('statusPill')?.className='statusPill online';
+$('dashboardHealth')?.innerHTML='<span style="color:var(--success)">&#10004; '+d.status+'</span> · '+d.service+' v'+d.version;addResponse('GET','/',d,true);
+} catch(err){st('statusText','Offline');$('statusPill')?.className='statusPill';$('dashboardHealth')?.innerHTML='<span style="color:var(--danger)">&#10006; Offline</span>';addResponse('GET','/',{error:err.message},false);}
+finally(){if(btn){btn.disabled=false;btn.textContent='Check Server';}}
 }
 
 async function doLogin(){
-const email=document.getElementById('loginEmail2').value.trim();
-const pass=document.getElementById('loginPassword2').value.trim();
-const res=document.getElementById('loginResult2');
-res.innerHTML='Signing in…';
+const email=$('loginEmail2')?.value.trim();const pass=$('loginPassword2')?.value.trim();const res=$('loginResult2');
+if(!email||!pass){showMessage(res,'Email and password required.');return;}
 try{
-const r=await fetch(API+'/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-const d=await r.json();
-if(r.ok){
-accessToken=d.access_token;
-refreshToken=d.refresh_token;
-setAuthState(true,{id:d.user.id,email:d.user.email,role:d.user.role});
-res.innerHTML='<span style="color:var(--success);">&#10004; Signed in as '+d.user.email+'</span>';
-document.getElementById('tokensDisplay2').innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';
-}else{
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+(d.error||'Login failed')+'</span>';
-}
-addResponse('POST','/api/v1/auth/login',data,r.ok);
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('POST','/api/v1/auth/login',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})});
+accessToken=d.access_token;refreshToken=d.refresh_token;currentUser={id:d.user.id,email:d.user.email,role:d.user.role};
+enterApp();showMessage(res,'Successfully signed in.',true);st('tokensDisplay2','Access: '+accessToken+'\n\nRefresh: '+refreshToken);
+} catch(err){showMessage(res,err.message);addResponse('POST','/api/v1/auth/login',{error:err.message},false);}
 }
 
 async function doRegister(){
-const email=document.getElementById('regEmail2').value.trim();
-const pass=document.getElementById('regPassword2').value.trim();
-const res=document.getElementById('regResult2');
-res.innerHTML='Creating…';
+const email=$('regEmail2')?.value.trim();const pass=$('regPassword2')?.value.trim();const res=$('regResult2');
+if(!email||!pass){showMessage(res,'Email and password required.');return;}
 try{
-const r=await fetch(API+'/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-const d=await r.json();
-res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; '+d.user.email+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
-addResponse('POST','/api/v1/auth/register',data,r.ok);
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('POST','/api/v1/auth/register',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/auth/register',{method:'POST',body:JSON.stringify({email,password:pass})});
+showMessage(res,'Account created successfully.',true);addResponse('POST','/api/v1/auth/register',d,true);
+} catch(err){showMessage(res,err.message);addResponse('POST','/api/v1/auth/register',{error:err.message},false);}
 }
 
-async function doMe2(){
-const res=document.getElementById('meResult2');
-res.innerHTML='Fetching…';
+async function doMe(){
+const res=$('meResult2');res.innerHTML='Fetching…';
 try{
-const r=await fetch(API+'/api/v1/auth/me',{headers:{'Authorization':'Bearer '+accessToken}});
-const d=await r.json();
-res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; '+d.user.email+' ('+d.user.role+')</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
-addResponse('GET','/api/v1/auth/me',data,r.ok);
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('GET','/api/v1/auth/me',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/auth/me');res.innerHTML='<span style="color:var(--success)">&#10004; '+d.user.email+' ('+d.user.role+')</span>';addResponse('GET','/api/v1/auth/me',d,true);
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/auth/me',{error:err.message},false);}
 }
 
-async function doRefresh2(){
-const token=document.getElementById('refreshToken2').value.trim()||refreshToken;
-const res=document.getElementById('refreshResult2');
-res.innerHTML='Refreshing…';
+async function doRefresh(){
+const res=$('refreshResult2');res.innerHTML='Refreshing…';
 try{
-const r=await fetch(API+'/api/v1/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:token})});
-const d=await r.json();
-if(r.ok){
-accessToken=d.access_token;
-refreshToken=d.refresh_token;
-res.innerHTML='<span style="color:var(--success);">&#10004; Refreshed</span>';
-document.getElementById('tokensDisplay2').innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';
-}else{
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
-}
-addResponse('POST','/api/v1/auth/refresh',data,r.ok);
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('POST','/api/v1/auth/refresh',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/auth/refresh',{method:'POST',body:JSON.stringify({refresh_token:refreshToken||$('refreshToken2')?.value})});
+accessToken=d.access_token;refreshToken=d.refresh_token;res.innerHTML='<span style="color:var(--success)">&#10004; Refreshed</span>';st('tokensDisplay2','Access: '+accessToken+'\n\nRefresh: '+refreshToken);
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/refresh',{error:err.message},false);}
 }
 
 function doLogout(){
-accessToken='';
-refreshToken='';
-currentUser=null;
-pendingEmail='';
-pendingOtpEmail='';
-stopTimers();
-if(authPage)authPage.style.display='flex';
-if(app)app.style.display='none';
-setMode('signup');
-document.getElementById('tokensDisplay2').innerHTML='';
-}
-
-async function doLogout2(){
-try{
-const r=await fetch(API+'/api/v1/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refreshToken})});
-const d=await r.json();
-accessToken='';
-refreshToken='';
-currentUser=null;
-setAuthState(false);
-document.getElementById('tokensDisplay2').innerHTML='';
-document.getElementById('logoutResult2').innerHTML='<span style="color:var(--success);">&#10004; Signed out</span>';
-addResponse('POST','/api/v1/auth/logout',data,r.ok);
-}catch(err){
-document.getElementById('logoutResult2').innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('POST','/api/v1/auth/logout',{error:err.message},false);
-}
+accessToken='';refreshToken='';currentUser=null;pendingEmail='';pendingPassword='';pendingOtpEmail='';stopTimers();
+sh('authPage',true,'flex');sh('app',false);setMode('signup');$('tokensDisplay2')?.textContent='';
 }
 
 async function doCreateApiKey(){
-const name=document.getElementById('keyName').value.trim();
-const perms=document.getElementById('keyPerms').value.split(',').map(s=>s.trim()).filter(Boolean);
-const expires=document.getElementById('keyExpires').value.trim();
-const res=document.getElementById('apiKeyResult');
-res.innerHTML='Creating…';
+const name=$('keyName')?.value.trim();const perms=$('keyPerms')?.value.split(',').map(s=>s.trim()).filter(Boolean);const expires=$('keyExpires')?.value.trim();const res=$('apiKeyResult');res.innerHTML='Creating…';
 try{
-const r=await fetch(API+'/api/v1/auth/api-keys',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken},body:JSON.stringify({name,permissions:perms,expires_in_days:expires?parseInt(expires):undefined})});
-const d=await r.json();
-if(r.ok){
-res.innerHTML='<span style="color:var(--success);">&#10004; '+d.name+'</span>';
-document.getElementById('apiKeyDisplay').innerHTML='<strong>Key:</strong><div class="tokenBox">'+data.key+'</div>';
-doListApiKeys();
-}else{
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
-}
-addResponse('POST','/api/v1/auth/api-keys',data,r.ok);
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('POST','/api/v1/auth/api-keys',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/auth/api-keys',{method:'POST',body:JSON.stringify({name,permissions:perms,expires_in_days:expires?parseInt(expires):undefined})});
+res.innerHTML='<span style="color:var(--success)">&#10004; '+d.name+'</span>';$('apiKeyDisplay')?.innerHTML='<strong>Key:</strong><div class="tokenBox">'+d.key+'</div>';doListApiKeys();
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/api-keys',{error:err.message},false);}
 }
 
 async function doListApiKeys(){
-const c=document.getElementById('apiKeysList');
-c.innerHTML='<div style="color:var(--muted);">Loading…</div>';
+const c=$('apiKeysList');c.innerHTML='<div style="color:var(--muted)">Loading…</div>';
 try{
-const r=await fetch(API+'/api/v1/auth/api-keys',{headers:{'Authorization':'Bearer '+accessToken}});
-const d=await r.json();
-if(!r.ok){
-c.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
-addResponse('GET','/api/v1/auth/api-keys',data,false);
-return;
-}
-const keys=d.keys||[];
-if(keys.length===0){
-c.innerHTML='<div class="empty">No keys</div>';
-}else{
+const d=await apiRequest('/api/v1/auth/api-keys');const keys=d.keys||[];
+if(keys.length===0){c.innerHTML='<div class="empty">No keys</div>';}else{
 let h='<table><thead><tr><th>Name</th><th>Key</th><th>Perms</th><th>Action</th></tr></thead><tbody>';
-keys.forEach(k=>{
-h+='<tr><td><strong>'+k.name+'</strong></td><td><span class="maskedKey">'+k.key_prefix+'</span></td><td><span class="badge badge-info">'+k.permissions.join(',')+'</span></td><td><button class="btn btn-danger" style="width:auto;padding:6px 10px;" onclick="doRevokeApiKeyById(\''+k.id+'\')">Revoke</button></td></tr>';
-});
-h+='</tbody></table>';
-c.innerHTML=h;
-}
-addResponse('GET','/api/v1/auth/api-keys',{count:keys.length},true);
-}catch(err){
-c.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('GET','/api/v1/auth/api-keys',{error:err.message},false);
-}
+keys.forEach(k=>{h+='<tr><td><strong>'+k.name+'</strong></td><td><span class="maskedKey">'+k.key_prefix+'</span></td><td><span class="badge badge-info">'+k.permissions.join(',')+'</span></td><td><button class="btn btn-danger" style="width:auto;padding:6px 10px;" onclick="doRevokeApiKeyById(''+k.id+'')">Revoke</button></td></tr>';});
+h+='</tbody></table>';c.innerHTML=h;
+}addResponse('GET','/api/v1/auth/api-keys',{count:keys.length},true);
+} catch(err){c.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/auth/api-keys',{error:err.message},false);}
 }
 
 async function doRevokeApiKeyById(id){
-const res=document.getElementById('apiKeyResult');
-res.innerHTML='Revoking…';
+const res=$('apiKeyResult');res.innerHTML='Revoking…';
 try{
-const r=await fetch(API+'/api/v1/auth/api-keys/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+accessToken}});
-const d=await r.json();
-res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Revoked</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
-addResponse('DELETE','/api/v1/auth/api-keys/'+id,data,r.ok);
-if(r.ok)doListApiKeys();
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('DELETE','/api/v1/auth/api-keys/'+id,{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/auth/api-keys/'+id,{method:'DELETE'});res.innerHTML=d.ok?'<span style="color:var(--success)">&#10004; Revoked</span>':'<span style="color:var(--danger)">&#10006; '+d.error+'</span>';if(d.ok)doListApiKeys();
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('DELETE','/api/v1/auth/api-keys/'+id,{error:err.message},false);}
 }
 
 async function doProjectAlpha(){
-const res=document.getElementById('projectAlphaResult');
-res.innerHTML='Fetching…';
+const res=$('projectAlphaResult');res.innerHTML='Fetching…';
 try{
-const r=await fetch(API+'/api/v1/project-alpha',{headers:{'Authorization':'Bearer '+accessToken}});
-const d=await r.json();
-res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
-addResponse('GET','/api/v1/project-alpha',data,r.ok);
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('GET','/api/v1/project-alpha',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/project-alpha');res.innerHTML='<span style="color:var(--success)">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>';addResponse('GET','/api/v1/project-alpha',d,true);
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/project-alpha',{error:err.message},false);}
 }
 
 async function doProjectBeta(){
-const res=document.getElementById('projectBetaResult');
-res.innerHTML='Fetching…';
+const res=$('projectBetaResult');res.innerHTML='Fetching…';
 try{
-const r=await fetch(API+'/api/v1/project-beta',{headers:{'Authorization':'Bearer '+accessToken}});
-const d=await r.json();
-res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
-addResponse('GET','/api/v1/project-beta',data,r.ok);
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('GET','/api/v1/project-beta',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/project-beta');res.innerHTML='<span style="color:var(--success)">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>';addResponse('GET','/api/v1/project-beta',d,true);
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/project-beta',{error:err.message},false);}
 }
 
 async function doInitDb(){
-const res=document.getElementById('initDbResult');
-res.innerHTML='Initializing…';
+const res=$('initDbResult');res.innerHTML='Initializing…';
 try{
-const r=await fetch(API+'/api/v1/db/_init');
-const d=await r.json();
-res.innerHTML='<span style="color:var(--success);">&#10004; '+d.status+'</span>';
-addResponse('POST','/api/v1/db/_init',data,true);
-doListItems();
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('POST','/api/v1/db/_init',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/db/_init');res.innerHTML='<span style="color:var(--success)">&#10004; '+d.status+'</span>';addResponse('POST','/api/v1/db/_init',d,true);doListItems();
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/db/_init',{error:err.message},false);}
 }
 
 async function doListItems(){
-const body=document.getElementById('dbItemsBody');
-const countEl=document.getElementById('dbItemCount');
-body.innerHTML='<tr><td colspan="4" style="color:var(--muted);">Loading…</td></tr>';
+const body=$('dbItemsBody');const countEl=$('dbItemCount');body.innerHTML='<tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr>';
 try{
-const r=await fetch(API+'/api/v1/db/items');
-const d=await r.json();
-const items=d.items||[];
-if(countEl)countEl.textContent=items.length+' item'+(items.length!==1?'s':'');
-body.innerHTML='';
-if(items.length===0){
-body.innerHTML='<tr><td colspan="4" class="empty">No items</td></tr>';
-return;
-}
-items.forEach(item=>{
-const tr=document.createElement('tr');
-tr.innerHTML='<td><span style="font-family:monospace;font-size:0.8rem;color:var(--accent);">#'+item.id+'</span></td><td><strong>'+escapeHtml(item.name)+'</strong></td>';
-body.appendChild(tr);
-});
-addResponse('GET','/api/v1/db/items',{count:items.length},true);
-}catch(err){
-body.innerHTML='<tr><td colspan="4" style="color:var(--danger);">&#10006; '+err.message+'</td></tr>';
-addResponse('GET','/api/v1/db/items',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/db/items');const items=d.items||[];if(countEl)countEl.textContent=items.length+' item'+(items.length!==1?'s':'');body.innerHTML='';
+if(items.length===0){body.innerHTML='<tr><td colspan="4" class="empty">No items</td></tr>';return;}
+items.forEach(item=>{const tr=document.createElement('tr');tr.innerHTML='<td><span style="font-family:monospace;font-size:0.8rem;color:var(--accent)">#'+item.id+'</span></td><td><strong>'+escapeHtml(item.name)+'</strong></td>';body.appendChild(tr);});addResponse('GET','/api/v1/db/items',{count:items.length},true);
+} catch(err){body.innerHTML='<tr><td colspan="4" style="color:var(--danger)">&#10006; '+err.message+'</td></tr>';addResponse('GET','/api/v1/db/items',{error:err.message},false);}
 }
 
 async function doCreateItem(){
-const name=document.getElementById('dbItemName').value.trim();
-const res=document.getElementById('dbCreateResult');
-res.innerHTML='Creating…';
+const name=$('dbItemName')?.value.trim();const res=$('dbCreateResult');res.innerHTML='Creating…';
 try{
-const r=await fetch(API+'/api/v1/db/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
-const d=await r.json();
-res.innerHTML='<span style="color:var(--success);">&#10004; "'+data.name+'"</span>';
-document.getElementById('dbItemName').value='';
-addResponse('POST','/api/v1/db/items',data,true);
-doListItems();
-}catch(err){
-res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
-addResponse('POST','/api/v1/db/items',{error:err.message},false);
-}
+const d=await apiRequest('/api/v1/db/items',{method:'POST',body:JSON.stringify({name})});res.innerHTML='<span style="color:var(--success)">&#10004; '+d.name+'</span>';$('dbItemName')?.value='';addResponse('POST','/api/v1/db/items',d,true);doListItems();
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/db/items',{error:err.message},false);}
 }
 
-function escapeHtml(str){
-const div=document.createElement('div');
-div.textContent=str;
-return div.innerHTML;
-}
-
-setMode('signup');
-checkHealth();
-setInterval(checkHealth,30000);
-
-/* =========================================
-   AUTHENTICATION API
-========================================= */
-
-async function doRegister2() {
-    const email = $('regEmail2')?.value.trim();
-    const password = $('regPassword2')?.value.trim();
-    const result = $('regResult2');
-
-    if (!email || !password) {
-        showMessage(result, 'Email and password are required.');
-        return;
-    }
-
-    try {
-        const data = await apiRequest('/api/v1/auth/register', {
-            method: 'POST',
-            body: JSON.stringify({ email, password })
-        });
-
-        showMessage(result, 'Account created successfully.', true);
-
-        addResponse('POST', '/api/v1/auth/register', data, true);
-
-    } catch (error) {
-        showMessage(result, error.message);
-        addResponse('POST', '/api/v1/auth/register', {
-            error: error.message
-        }, false);
-    }
-}
-
-async function doLogin() {
-    const email = $('loginEmail2')?.value.trim();
-    const password = $('loginPassword2')?.value.trim();
-    const result = $('loginResult2');
-
-    if (!email || !password) {
-        showMessage(result, 'Email and password are required.');
-        return;
-    }
-
-    try {
-        const data = await apiRequest('/api/v1/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password })
-        });
-
-        saveSession(data);
-        enterApp();
-
-        showMessage(result, 'Successfully signed in.', true);
-
-        st(
-            'tokensDisplay2',
-            `Access: ${accessToken}
-
-Refresh: ${refreshToken}`
-        );
-    } catch (error) {
-        showMessage(result, error.message);
-        addResponse('POST', '/api/v1/auth/login', {error: error.message}, false);
-    }
-}
-</script>
+setMode('signup');checkHealth();setInterval(checkHealth,30000);
+</script></script>
 </body>
 </html>
