@@ -292,6 +292,17 @@
     }
     .step.active { background: var(--accent); }
     .step.completed { background: var(--success); }
+    .loadingSpinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ============================================================ */
     /*  App Layout                                                  */
@@ -622,14 +633,14 @@
         </div>
         <div class="form-group" id="passwordGroup">
           <label for="authPassword">Password</label>
-          <input type="password" id="authPassword" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+          <input type="password" id="authPassword" placeholder="••••••••" autocomplete="new-password" />
         </div>
         <button class="btn btn-primary btn-full" id="btnStep1" onclick="step1Next()">Continue</button>
       </div>
 
       <!-- Step 2: OTP Sent -->
       <div id="stepOtpSent" style="display:none; text-align:center;">
-        <div style="font-size: 2.5rem; margin-bottom: 12px;">&#128231;</div>
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">📧</div>
         <div style="color: var(--muted); margin-bottom: 6px;">We&rsquo;ve sent a 6-digit code to</div>
         <div style="font-weight: 700; color: var(--text); margin-bottom: 16px;" id="otpTargetEmail"></div>
         <div class="form-group" style="margin-bottom: 10px;">
@@ -656,7 +667,7 @@
 
       <!-- Step 3: Success -->
       <div id="stepSuccess" style="display:none; text-align:center;">
-        <div style="font-size: 2.5rem; margin-bottom: 12px;">&#9989;</div>
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">✅</div>
         <div style="color: var(--success); font-weight: 700; margin-bottom: 16px;">Account Verified!</div>
         <div style="color: var(--muted); margin-bottom: 20px;">Redirecting to dashboard&hellip;</div>
         <div class="tokenBox" id="stepTokens" style="text-align:left;"></div>
@@ -668,24 +679,24 @@
   <div id="app">
     <div class="sidebar">
       <div class="sidebarBrand">
-        <h2>&#128272; API Console</h2>
+        <h2>🔐 API Console</h2>
         <p>Universal API Server v2.0.0</p>
       </div>
       <div class="nav">
         <div class="navItem active" onclick="showSection('dashboard')" id="navDashboard">
-          <span class="icon">&#128202;</span> Dashboard
+          <span class="icon">📊</span> Dashboard
         </div>
         <div class="navItem" onclick="showSection('auth')" id="navAuth">
-          <span class="icon">&#128274;</span> Authentication
+          <span class="icon">🔑</span> Authentication
         </div>
         <div class="navItem" onclick="showSection('apikeys')" id="navAPIKeys">
-          <span class="icon">&#128279;</span> API Keys
+          <span class="icon">🗝️</span> API Keys
         </div>
         <div class="navItem" onclick="showSection('projects')" id="navProjects">
-          <span class="icon">&#127376;</span> Projects
+          <span class="icon">🅰️</span> Projects
         </div>
         <div class="navItem" onclick="showSection('database')" id="navDatabase">
-          <span class="icon">&#128196;</span> Database
+          <span class="icon">🗄️</span> Database
         </div>
       </div>
       <div class="userSection" id="userSection">
@@ -715,19 +726,19 @@
       <div id="section-dashboard" class="tabContent active">
         <div class="grid">
           <div class="card">
-            <h2><span class="icon">&#128204;</span>Server Health</h2>
+            <h2><span class="icon">🏥</span>Server Health</h2>
             <button class="btn btn-outline btn-full" onclick="checkHealth()">Check Server Status</button>
             <div id="dashboardHealth" class="empty">Not checked yet</div>
           </div>
           <div class="card">
-            <h2><span class="icon">&#128204;</span>Quick Actions</h2>
+            <h2><span class="icon">📋</span>Quick Actions</h2>
             <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 16px;">Get started with the API</p>
             <button class="btn btn-primary btn-full" onclick="showSection('auth')">Authenticate</button>
             <button class="btn btn-outline btn-full" style="margin-top: 10px;" onclick="showSection('apikeys')">Create API Key</button>
             <button class="btn btn-outline btn-full" style="margin-top: 10px;" onclick="showSection('database')">Manage Database</button>
           </div>
           <div class="card">
-            <h2><span class="icon">&#128229;</span>Recent Activity</h2>
+            <h2><span class="icon">📡</span>Recent Activity</h2>
             <div id="dashboardLog" class="empty">No activity yet</div>
           </div>
         </div>
@@ -741,24 +752,24 @@
         </div>
 
         <div class="card">
-          <h2><span class="icon">&#128205;</span>Register</h2>
+          <h2><span class="icon">📝</span>Register</h2>
           <div class="form-group"><label for="regEmail2">Email</label><input type="email" id="regEmail2" placeholder="you@example.com"/></div>
-          <div class="form-group"><label for="regPassword2">Password</label><input type="password" id="regPassword2" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;"/></div>
+          <div class="form-group"><label for="regPassword2">Password</label><input type="password" id="regPassword2" placeholder="••••••••"/></div>
           <button class="btn btn-primary btn-sm" onclick="doRegister2()">Create Account</button>
           <div id="regResult2" class="empty"></div>
         </div>
 
         <div class="card">
-          <h2><span class="icon">&#128274;</span>Login (Password)</h2>
+          <h2><span class="icon">🔑</span>Login (Password)</h2>
           <div class="form-group"><label for="loginEmail2">Email</label><input type="email" id="loginEmail2" placeholder="you@example.com"/></div>
-          <div class="form-group"><label for="loginPassword2">Password</label><input type="password" id="loginPassword2" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;"/></div>
+          <div class="form-group"><label for="loginPassword2">Password</label><input type="password" id="loginPassword2" placeholder="••••••••"/></div>
           <button class="btn btn-success btn-sm" onclick="doLogin2()">Sign In with Password</button>
           <div id="loginResult2" class="empty"></div>
           <div id="tokensDisplay2" class="tokenBox"></div>
         </div>
 
         <div class="card">
-          <h2><span class="icon">&#128241;</span>Login with OTP</h2>
+          <h2><span class="icon">📱</span>Login with OTP</h2>
           <div class="form-group"><label for="otpLoginEmail">Email</label><input type="email" id="otpLoginEmail" placeholder="you@example.com"/></div>
           <button class="btn btn-primary btn-sm" onclick="doLoginOTPSend()">Send OTP Code</button>
           <div id="otpLoginResult" class="empty"></div>
@@ -769,13 +780,13 @@
         </div>
 
         <div class="card">
-          <h2><span class="icon">&#128206;</span>Profile (Protected)</h2>
+          <h2><span class="icon">👤</span>Profile (Protected)</h2>
           <button class="btn btn-outline btn-sm" onclick="doMe2()">Get My Profile</button>
           <div id="meResult2" class="empty"></div>
         </div>
 
         <div class="card">
-          <h2><span class="icon">&#128204;</span>Refresh Token</h2>
+          <h2><span class="icon">🔄</span>Refresh Token</h2>
           <div class="form-group"><label for="refreshToken2">Refresh Token</label><input type="text" id="refreshToken2" placeholder="Paste refresh token"/></div>
           <button class="btn btn-outline btn-sm" onclick="doRefresh2()">Refresh Access Token</button>
           <div id="refreshResult2" class="empty"></div>
@@ -790,7 +801,7 @@
       <!-- API Keys -->
       <div id="section-apikeys" class="tabContent">
         <div class="card">
-          <h2><span class="icon">&#128279;</span>Create API Key</h2>
+          <h2><span class="icon">🗝️</span>Create API Key</h2>
           <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 16px;">Service-to-service authentication key. Plaintext key shown only once.</p>
           <div class="form-group"><label for="keyName">Key Name</label><input type="text" id="keyName" placeholder="my-service-key"/></div>
           <div class="form-group"><label for="keyPerms">Permissions (comma-separated)</label><input type="text" id="keyPerms" placeholder="read,write"/></div>
@@ -801,7 +812,7 @@
         </div>
 
         <div class="card">
-          <h2><span class="icon">&#128204;</span>My API Keys</h2>
+          <h2><span class="icon">📋</span>My API Keys</h2>
           <button class="btn btn-outline btn-sm" onclick="doListApiKeys()">Refresh List</button>
           <div id="apiKeysList"></div>
         </div>
@@ -810,13 +821,13 @@
       <!-- Projects -->
       <div id="section-projects" class="tabContent">
         <div class="card">
-          <h2><span class="icon">&#127376;</span>Project Alpha (Sandbox)</h2>
+          <h2><span class="icon">🅰️</span>Project Alpha (Sandbox)</h2>
           <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 16px;">Protected sandbox for Project Alpha. Requires JWT or API Key authentication.</p>
           <button class="btn btn-outline btn-sm" onclick="doProjectAlpha()">Test Project Alpha</button>
           <div id="projectAlphaResult" class="empty"></div>
         </div>
         <div class="card">
-          <h2><span class="icon">&#127377;</span>Project Beta (Sandbox)</h2>
+          <h2><span class="icon">🅱️</span>Project Beta (Sandbox)</h2>
           <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 16px;">Protected sandbox for Project Beta. Requires JWT or API Key authentication.</p>
           <button class="btn btn-outline btn-sm" onclick="doProjectBeta()">Test Project Beta</button>
           <div id="projectBetaResult" class="empty"></div>
@@ -826,12 +837,12 @@
       <!-- Database -->
       <div id="section-database" class="tabContent">
         <div class="card">
-          <h2><span class="icon">&#128196;</span>Database Setup</h2>
+          <h2><span class="icon">🗄️</span>Database Setup</h2>
           <button class="btn btn-success btn-sm" onclick="doInitDb()">Initialize D1 Tables</button>
           <div id="initDbResult" class="empty"></div>
         </div>
         <div class="card">
-          <h2><span class="icon">&#128204;</span>Items</h2>
+          <h2><span class="icon">📋</span>Items</h2>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <button class="btn btn-outline btn-sm" onclick="doListItems()">Refresh Items</button>
             <span id="dbItemCount" style="font-size: 0.8rem; color: var(--muted);">0 items</span>
@@ -842,7 +853,7 @@
           </table>
         </div>
         <div class="card">
-          <h2><span class="icon">&#128196;</span>Create Item</h2>
+          <h2><span class="icon">➕</span>Create Item</h2>
           <div class="form-group"><label for="dbItemName">Item Name</label><input type="text" id="dbItemName" placeholder="e.g. Test item"/></div>
           <button class="btn btn-primary btn-sm" onclick="doCreateItem()">Create Item</button>
           <div id="dbCreateResult" class="empty"></div>
@@ -851,7 +862,7 @@
 
       <!-- Live Responses -->
       <div class="card" style="margin-top: 0;">
-        <h2><span class="icon">&#128229;</span>Live API Responses</h2>
+        <h2><span class="icon">📡</span>Live API Responses</h2>
         <div id="responseLog"></div>
       </div>
     </div>
@@ -1228,6 +1239,11 @@
     }
 
     async function checkHealth() {
+      const btn = document.querySelector('#dashboardHealth').previousElementSibling;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loadingSpinner"></span>Checking...';
+      }
       try {
         const r = await fetch(API + '/');
         const data = await r.json();
@@ -1259,6 +1275,12 @@
         if (dashboardHealthEl) dashboardHealthEl.innerHTML = '<span style="color:var(--danger);">&#10006; Offline</span>';
         addResponse('GET', '/', { error: err.message }, false);
         return null;
+      } finally {
+        const btn = document.querySelector('#dashboardHealth').previousElementSibling;
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Check Server Status';
+        }
       }
     }
 
@@ -1569,13 +1591,13 @@
         } else {
           let html = '<table><thead><tr><th>Name</th><th>Key (masked)</th><th>Permissions</th><th>Expires</th><th>Action</th></tr></thead><tbody>';
           keys.forEach(k => {
-            html += `<tr>
-              <td><strong>${k.name}</strong></td>
-              <td><span class="maskedKey">${k.key_prefix}</span></td>
-              <td><span class="badge badge-info">${k.permissions.join(',')}</span></td>
-              <td>${k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never'}</td>
-              <td><button class="btn btn-danger btn-sm" onclick="doRevokeApiKeyById('${k.id}')">Revoke</button></td>
-            </tr>`;
+            html += '<tr>' +
+              '<td><strong>' + k.name + '</strong></td>' +
+              '<td><span class="maskedKey">' + k.key_prefix + '</span></td>' +
+              '<td><span class="badge badge-info">' + k.permissions.join(',') + '</span></td>' +
+              '<td>' + (k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never') + '</td>' +
+              '<td><button class="btn btn-danger btn-sm" onclick="doRevokeApiKeyById('' + k.id + '')">Revoke</button></td>' +
+              '</tr>';
           });
           html += '</tbody></table>';
           container.innerHTML = html;
