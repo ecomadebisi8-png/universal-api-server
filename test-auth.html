@@ -617,11 +617,11 @@
       <!-- Step 1: Credentials -->
       <div id="stepCredentials">
         <div class="form-group" id="emailGroup">
-          <label>Email Address</label>
+          <label for="authEmail">Email Address</label>
           <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email" />
         </div>
         <div class="form-group" id="passwordGroup">
-          <label>Password</label>
+          <label for="authPassword">Password</label>
           <input type="password" id="authPassword" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
         </div>
         <button class="btn btn-primary btn-full" id="btnStep1" onclick="step1Next()">Continue</button>
@@ -633,7 +633,7 @@
         <div style="color: var(--muted); margin-bottom: 6px;">We&rsquo;ve sent a 6-digit code to</div>
         <div style="font-weight: 700; color: var(--text); margin-bottom: 16px;" id="otpTargetEmail"></div>
         <div class="form-group" style="margin-bottom: 10px;">
-          <label>Verification Code</label>
+          <label for="otpCodeInput">Verification Code</label>
           <input type="text" id="otpCodeInput" placeholder="123456" maxlength="6"
                  style="text-align:center; font-size: 1.4rem; letter-spacing: 3px; font-family: 'JetBrains Mono', monospace;" />
         </div>
@@ -742,16 +742,16 @@
 
         <div class="card">
           <h2><span class="icon">&#128205;</span>Register</h2>
-          <div class="form-group"><label>Email</label><input type="email" id="regEmail2" placeholder="you@example.com"/></div>
-          <div class="form-group"><label>Password</label><input type="password" id="regPassword2" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;"/></div>
+          <div class="form-group"><label for="regEmail2">Email</label><input type="email" id="regEmail2" placeholder="you@example.com"/></div>
+          <div class="form-group"><label for="regPassword2">Password</label><input type="password" id="regPassword2" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;"/></div>
           <button class="btn btn-primary btn-sm" onclick="doRegister2()">Create Account</button>
           <div id="regResult2" class="empty"></div>
         </div>
 
         <div class="card">
           <h2><span class="icon">&#128274;</span>Login (Password)</h2>
-          <div class="form-group"><label>Email</label><input type="email" id="loginEmail2" placeholder="you@example.com"/></div>
-          <div class="form-group"><label>Password</label><input type="password" id="loginPassword2" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;"/></div>
+          <div class="form-group"><label for="loginEmail2">Email</label><input type="email" id="loginEmail2" placeholder="you@example.com"/></div>
+          <div class="form-group"><label for="loginPassword2">Password</label><input type="password" id="loginPassword2" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;"/></div>
           <button class="btn btn-success btn-sm" onclick="doLogin2()">Sign In with Password</button>
           <div id="loginResult2" class="empty"></div>
           <div id="tokensDisplay2" class="tokenBox"></div>
@@ -759,11 +759,11 @@
 
         <div class="card">
           <h2><span class="icon">&#128241;</span>Login with OTP</h2>
-          <div class="form-group"><label>Email</label><input type="email" id="otpLoginEmail" placeholder="you@example.com"/></div>
+          <div class="form-group"><label for="otpLoginEmail">Email</label><input type="email" id="otpLoginEmail" placeholder="you@example.com"/></div>
           <button class="btn btn-primary btn-sm" onclick="doLoginOTPSend()">Send OTP Code</button>
           <div id="otpLoginResult" class="empty"></div>
           <div id="otpLoginBox" class="otpBox" style="margin-top: 14px;"></div>
-          <div class="form-group" style="margin-top: 14px;"><label>Verification Code</label><input type="text" id="otpLoginCode" placeholder="123456" maxlength="6" style="text-align:center; font-size: 1.2rem; letter-spacing: 3px;"/></div>
+          <div class="form-group" style="margin-top: 14px;"><label for="otpLoginCode">Verification Code</label><input type="text" id="otpLoginCode" placeholder="123456" maxlength="6" style="text-align:center; font-size: 1.2rem; letter-spacing: 3px;"/></div>
           <button class="btn btn-success btn-sm" onclick="doLoginOTPVerify()">Verify &amp; Sign In</button>
           <div id="otpLoginVerifyResult" class="empty"></div>
         </div>
@@ -776,7 +776,7 @@
 
         <div class="card">
           <h2><span class="icon">&#128204;</span>Refresh Token</h2>
-          <div class="form-group"><label>Refresh Token</label><input type="text" id="refreshToken2" placeholder="Paste refresh token"/></div>
+          <div class="form-group"><label for="refreshToken2">Refresh Token</label><input type="text" id="refreshToken2" placeholder="Paste refresh token"/></div>
           <button class="btn btn-outline btn-sm" onclick="doRefresh2()">Refresh Access Token</button>
           <div id="refreshResult2" class="empty"></div>
         </div>
@@ -792,9 +792,9 @@
         <div class="card">
           <h2><span class="icon">&#128279;</span>Create API Key</h2>
           <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 16px;">Service-to-service authentication key. Plaintext key shown only once.</p>
-          <div class="form-group"><label>Key Name</label><input type="text" id="keyName" placeholder="my-service-key"/></div>
-          <div class="form-group"><label>Permissions (comma-separated)</label><input type="text" id="keyPerms" placeholder="read,write"/></div>
-          <div class="form-group"><label>Expires In Days (optional)</label><input type="text" id="keyExpires" placeholder="30"/></div>
+          <div class="form-group"><label for="keyName">Key Name</label><input type="text" id="keyName" placeholder="my-service-key"/></div>
+          <div class="form-group"><label for="keyPerms">Permissions (comma-separated)</label><input type="text" id="keyPerms" placeholder="read,write"/></div>
+          <div class="form-group"><label for="keyExpires">Expires In Days (optional)</label><input type="text" id="keyExpires" placeholder="30"/></div>
           <button class="btn btn-success btn-sm" onclick="doCreateApiKey()">Create Key</button>
           <div id="apiKeyResult" class="empty"></div>
           <div id="apiKeyDisplay" class="tokenBox"></div>
@@ -843,7 +843,7 @@
         </div>
         <div class="card">
           <h2><span class="icon">&#128196;</span>Create Item</h2>
-          <div class="form-group"><label>Item Name</label><input type="text" id="dbItemName" placeholder="e.g. Test item"/></div>
+          <div class="form-group"><label for="dbItemName">Item Name</label><input type="text" id="dbItemName" placeholder="e.g. Test item"/></div>
           <button class="btn btn-primary btn-sm" onclick="doCreateItem()">Create Item</button>
           <div id="dbCreateResult" class="empty"></div>
         </div>
@@ -1713,4 +1713,4 @@
     setInterval(checkHealth, 30000);
   </script>
 </body>
-</html># test
+</html>
