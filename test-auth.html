@@ -1569,13 +1569,13 @@
         } else {
           let html = '<table><thead><tr><th>Name</th><th>Key (masked)</th><th>Permissions</th><th>Expires</th><th>Action</th></tr></thead><tbody>';
           keys.forEach(k => {
-            html += '<tr>' +
-              '<td><strong>' + k.name + '</strong></td>' +
-              '<td><span class="maskedKey">' + k.key_prefix + '</span></td>' +
-              '<td><span class="badge badge-info">' + k.permissions.join(',') + '</span></td>' +
-              '<td>' + (k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never') + '</td>' +
-              '<td><button class="btn btn-danger btn-sm" onclick="doRevokeApiKeyById('' + k.id + '')">Revoke</button></td>' +
-              '</tr>';
+            html += `<tr>
+              <td><strong>${k.name}</strong></td>
+              <td><span class="maskedKey">${k.key_prefix}</span></td>
+              <td><span class="badge badge-info">${k.permissions.join(',')}</span></td>
+              <td>${k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never'}</td>
+              <td><button class="btn btn-danger btn-sm" onclick="doRevokeApiKeyById('${k.id}')">Revoke</button></td>
+            </tr>`;
           });
           html += '</tbody></table>';
           container.innerHTML = html;
