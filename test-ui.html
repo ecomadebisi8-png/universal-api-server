@@ -9,7 +9,6 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--bg:#0f172a;--card:#1e293b;--border:#334155;--accent:#38bdf8;--accent-hover:#7dd3fc;--success:#22c55e;--success-bg:#166534;--danger:#ef4444;--danger-bg:#991b1b;--text:#f1f5f9;--muted:#94a3b8;--radius:12px;}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
-/* Auth Page */
 #authPage{display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:20px;}
 .authCard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:40px 32px;width:100%;max-width:440px;}
 .authCard h1{color:var(--accent);font-size:1.5rem;font-weight:700;margin-bottom:4px;}
@@ -45,7 +44,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 .stepIndicator{display:flex;gap:2px;margin-bottom:24px;}
 .step{flex:1;height:3px;background:#334155;border-radius:2px;transition:all .3s;}
 .step.active{background:var(--accent);}.step.completed{background:var(--success);}
-/* App Layout */
 #app{display:none;flex:1;height:100vh;overflow:hidden;}
 #app.visible{display:flex;}
 .sidebar{width:260px;background:#0f172a;border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:20;flex-shrink:0;}
@@ -75,7 +73,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:32px;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);}
 .card h2{font-size:1rem;margin-bottom:18px;color:var(--accent);display:flex;align-items:center;gap:10px;font-weight:700;}
-.authState{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:12px 16px;background:var(--card-hover);border-radius:8px;border:1px solid var(--border);}
+.authState{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:12px 16px;background:#2d3748;border-radius:8px;border:1px solid var(--border);}
 .authState .dot{width:8px;height:8px;border-radius:50%;background:var(--success);}
 .tokenBox{font-family:'JetBrains Mono',monospace;font-size:.72rem;background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:12px;word-break:break-all;margin-top:10px;color:#bbf7d0;max-height:70px;overflow-y:auto;}
 table{width:100%;border-collapse:collapse;margin-top:12px;}
@@ -96,7 +94,6 @@ tr:hover{background:var(--card-hover);}
 </head>
 <body>
 
-<!-- AUTH PAGE -->
 <div id="authPage">
 <div class="authCard">
 <h1 id="authTitle">Create Account</h1>
@@ -140,7 +137,6 @@ tr:hover{background:var(--card-hover);}
 </div>
 </div>
 
-<!-- APP -->
 <div id="app">
 <div class="sidebar">
 <div class="sidebarBrand"><h2>🔐 API Console</h2><p>Universal API Server v2.0.0</p></div>
@@ -198,41 +194,489 @@ tr:hover{background:var(--card-hover);}
 <script>
 const API='https://universal-api-server.ecomadebisi8-94e.workers.dev';
 let accessToken='',refreshToken='',currentUser=null,pendingEmail='',pendingOtpEmail='',isSignup=true,resendInterval=null,expiryInterval=null,resendSecondsLeft=60,expirySecondsLeft=600;
-const authPage=document.getElementById('authPage'),app=document.getElementById('app'),authAlert=document.getElementById('authAlert'),responseLog=document.getElementById('responseLog');
-function setMode(mode){isSignup=mode==='signup';document.getElementById('modeSignup').classList.toggle('active',isSignup);document.getElementById('modeLogin').classList.toggle('active',!isSignup);document.getElementById('passwordGroup').style.display=isSignup?'block':'none';document.getElementById('authTitle').textContent=isSignup?'Create Account':'Sign In';document.getElementById('authSubtitle').textContent=isSignup?'Join the Universal API Server':'Welcome back';document.getElementById('btnStep1').textContent=isSignup?'Create Account':'Send Code';if(authAlert)authAlert.style.display='none';document.getElementById('authEmail').value='';document.getElementById('authPassword').value='';document.getElementById('stepCredentials').style.display='block';document.getElementById('stepOtpSent').style.display='none';document.getElementById('stepSuccess').style.display='none';updateSteps(1);}
-function updateSteps(s){document.querySelectorAll('.step').forEach((el,i)=>{el.className='step';if(i<s-1)el.classList.add('completed');if(i===s-1)el.classList.add('active');});}
+const authPage=document.getElementById('authPage');
+const app=document.getElementById('app');
+const authAlert=document.getElementById('authAlert');
+const responseLog=document.getElementById('responseLog');
+
+function setMode(mode){
+isSignup=mode==='signup';
+document.getElementById('modeSignup').classList.toggle('active',isSignup);
+document.getElementById('modeLogin').classList.toggle('active',!isSignup);
+document.getElementById('passwordGroup').style.display=isSignup?'block':'none';
+document.getElementById('authTitle').textContent=isSignup?'Create Account':'Sign In';
+document.getElementById('authSubtitle').textContent=isSignup?'Join the Universal API Server':'Welcome back';
+document.getElementById('btnStep1').textContent=isSignup?'Create Account':'Send Code';
+if(authAlert)authAlert.style.display='none';
+document.getElementById('authEmail').value='';
+document.getElementById('authPassword').value='';
+document.getElementById('stepCredentials').style.display='block';
+document.getElementById('stepOtpSent').style.display='none';
+document.getElementById('stepSuccess').style.display='none';
+updateSteps(1);
+}
+function updateSteps(s){
+document.querySelectorAll('.step').forEach((el,i)=>{el.className='step';if(i<s-1)el.classList.add('completed');if(i===s-1)el.classList.add('active');});
+}
 function st(id,t){const el=document.getElementById(id);if(el)el.textContent=t;}
 function sh(elId,show){const el=document.getElementById(elId);if(el)el.style.display=show?'block':'none';}
 function showAuthAlert(msg){if(authAlert){authAlert.textContent=msg;authAlert.className='alert error';authAlert.style.display='block';}}
 function copyOTP(){const el=document.getElementById('otpCodeDisplay');if(!el)return;navigator.clipboard.writeText(el.textContent);const hint=document.getElementById('copyHint');hint.textContent='Copied!';setTimeout(()=>hint.textContent='Click to copy',1500);}
-function startResendTimer(){resendSecondsLeft=60;const box=document.getElementById('resendTimerBox');const link=document.getElementById('resendLink');const val=document.getElementById('resendTimerValue');if(box)box.style.display='block';if(link){link.style.display='none';link.classList.add('resendDisabled');}if(resendInterval)clearInterval(resendInterval);resendInterval=setInterval(()=>{resendSecondsLeft--;if(val){const m=Math.floor(resendSecondsLeft/60),s=resendSecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');}if(resendSecondsLeft<=0){clearInterval(resendInterval);resendInterval=null;if(box)box.style.display='none';if(link){link.style.display='inline';link.classList.remove('resendDisabled');}}},1000);}
-function startExpiryTimer(){expirySecondsLeft=600;const box=document.getElementById('expiryTimerBox');const val=document.getElementById('expiryTimerValue');if(box)box.style.display='block';if(expiryInterval)clearInterval(expiryInterval);expiryInterval=setInterval(()=>{expirySecondsLeft--;if(val){const m=Math.floor(expirySecondsLeft/60),s=expirySecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');if(expirySecondsLeft<=30)val.classList.add('expiring');if(expirySecondsLeft<=0){clearInterval(expiryInterval);expiryInterval=null;val.textContent='00:00';val.classList.add('expiring');}}},1000);}
+function startResendTimer(){
+resendSecondsLeft=60;
+const box=document.getElementById('resendTimerBox');
+const val=document.getElementById('resendTimerValue');
+if(box)box.style.display='block';
+if(resendInterval)clearInterval(resendInterval);
+resendInterval=setInterval(()=>{
+resendSecondsLeft--;
+if(val){const m=Math.floor(resendSecondsLeft/60),s=resendSecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');}
+if(resendSecondsLeft<=0){clearInterval(resendInterval);resendInterval=null;if(box)box.style.display='none';}
+},1000);
+}
+function startExpiryTimer(){
+expirySecondsLeft=600;
+const box=document.getElementById('expiryTimerBox');
+const val=document.getElementById('expiryTimerValue');
+if(box)box.style.display='block';
+if(expiryInterval)clearInterval(expiryInterval);
+expiryInterval=setInterval(()=>{
+expirySecondsLeft--;
+if(val){const m=Math.floor(expirySecondsLeft/60),s=expirySecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');if(expirySecondsLeft<=30)val.classList.add('expiring');if(expirySecondsLeft<=0){clearInterval(expiryInterval);expiryInterval=null;val.textContent='00:00';val.classList.add('expiring');}}
+},1000);
+}
 function stopTimers(){if(resendInterval)clearInterval(resendInterval);if(expiryInterval)clearInterval(expiryInterval);}
-async function step1Next(){const email=document.getElementById('authEmail').value.trim();const pass=document.getElementById('authPassword').value.trim();const btn=document.getElementById('btnStep1');if(!email){showAuthAlert('Enter email');return;}if(isSignup&&!pass){showAuthAlert('Enter password');return;}if(authAlert)authAlert.style.display='none';btn.disabled=true;btn.textContent=isSignup?'Creating...':'Sending...';try{const r=await fetch(API+'/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok){showAuthAlert(d.error||'Register failed');btn.disabled=false;btn.textContent='Create Account';return;}pendingEmail=email;pendingPassword=pass;const r2=await fetch(API+'/api/v1/auth/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});const d2=await r.json();if(r2.ok){pendingOtpEmail=email;st('otpTargetEmail',email);document.getElementById('otpCodeDisplay').textContent=d2.otp_code||'';sh('stepCredentials',false);sh('stepOtpSent',true);updateSteps(2);btn.disabled=false;btn.textContent='Create Account';startResendTimer();startExpiryTimer();}else{showAuthAlert(r2.error||'OTP failed');btn.disabled=false;btn.textContent='Create Account';}}catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent='Create Account';}}
+
+async function step1Next(){
+const email=document.getElementById('authEmail').value.trim();
+const pass=document.getElementById('authPassword').value.trim();
+const btn=document.getElementById('btnStep1');
+if(!email){showAuthAlert('Enter email');return;}
+if(isSignup&&!pass){showAuthAlert('Enter password');return;}
+if(authAlert)authAlert.style.display='none';
+btn.disabled=true;
+btn.textContent=isSignup?'Creating...':'Sending...';
+try{
+const r=await fetch(API+'/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+const d=await r.json();
+if(!r.ok){showAuthAlert(d.error||'Register failed');btn.disabled=false;btn.textContent='Create Account';return;}
+pendingEmail=email;
+pendingPassword=pass;
+const r2=await fetch(API+'/api/v1/auth/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+const d2=await r.json();
+if(r2.ok){
+pendingOtpEmail=email;
+st('otpTargetEmail',email);
+document.getElementById('otpCodeDisplay').textContent=d2.otp_code||'';
+sh('stepCredentials',false);
+sh('stepOtpSent',true);
+updateSteps(2);
+btn.disabled=false;
+btn.textContent='Create Account';
+startResendTimer();
+startExpiryTimer();
+}else{
+showAuthAlert(r2.error||'OTP failed');
+btn.disabled=false;
+btn.textContent='Create Account';
+}
+}catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent='Create Account';}
+}
+
 function step1Back(){sh('stepOtpSent',false);sh('stepCredentials',true);updateSteps(1);}
-async function step2Verify(){const codeInput=document.getElementById('otpCodeInput');const btn=document.querySelector('#stepOtpSent .btn-primary');if(!codeInput||!btn)return;const code=codeInput.value.trim();if(!code){showAuthAlert('Enter code');return;}btn.disabled=true;btn.textContent='Verifying…';try{const r=await fetch(API+'/api/v1/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:pendingOtpEmail,code})});const d=await r.json();if(!r.ok){showAuthAlert(d.error||'Invalid code');btn.disabled=false;btn.textContent='Verify Code';return;}accessToken=d.access_token;refreshToken=d.refresh_token;currentUser={id:d.user.id,email:d.user.email,role:d.user.role};stopTimers();sh('stepOtpSent',false);sh('stepSuccess',true);const tokens=document.getElementById('stepTokens');if(tokens){tokens.style.display='block';tokens.innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';}updateSteps(3);setTimeout(()=>enterApp(),1200);}catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent='Verify Code';}}
-function enterApp(){if(authPage)authPage.style.display='none';if(app)app.style.display='flex';const us=document.getElementById('userSection');if(us)us.style.display='block';st('userEmail',currentUser.email);st('userRole',currentUser.role);const av=document.getElementById('userAvatar');if(av)av.textContent=currentUser.email.charAt(0).toUpperCase();st('authStatusText','Logged in as '+currentUser.email);showSection('dashboard');checkHealth();}
-function showSection(name){document.querySelectorAll('.tabContent').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.navItem').forEach(n=>n.classList.remove('active'));const s=document.getElementById('section-'+name),n=document.getElementById('nav'+name.charAt(0).toUpperCase()+name.slice(1));if(s)s.classList.add('active');if(n)n.classList.add('active');const t=document.getElementById('sectionTitle');if(t)t.textContent=name.charAt(0).toUpperCase()+name.slice(1);}
-function addResponse(method,path,data,ok=true){const log=document.getElementById('responseLog');if(!log)return;const div=document.createElement('div');div.className='resultRow';const time=new Date().toLocaleTimeString();div.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex:1;"><span class="method '+method.toLowerCase()+'">'+method+'</span><span style="font-size:0.8rem;color:var(--muted);">'+path+'</span><span style="font-size:0.75rem;color:var(--muted);margin-left:auto;">'+time+'</span><span class="badge '+(ok?'badge-ok':'badge-err')+'">'+(ok?'OK':'ERROR')+'</span></div><div style="font-size:0.7rem;color:var(--muted);max-width:400px;word-break:break-all;" title="'+JSON.stringify(data)+'">'+(ok?formatResponse(data):(data.error||data.message||String(data)))+'</div>';log.prepend(div);while(log.children.length>20)log.removeChild(log.lastChild);}
-function formatResponse(d){if(!d)return '—';if(d.status==='ok')return '✅ '+d.status+' · '+(d.service||'')+' v'+(d.version||'');if(d.created)return '✅ Created: "'+d.name+'" (id:'+d.id+')';if(d.deleted)return '✅ Deleted id:'+d.id;if(d.otp_code)return '📧 OTP: '+d.otp_code;if(d.key)return '🔑 Key: '+d.key;if(Array.isArray(d.items))return '📦 '+d.count+' items';if(d.item)return '📄 Item '+d.item.id+': '+d.item.name;if(typeof d==='object')return Object.entries(d).map(([k,v])=>k+': '+v).join(' • ');return String(d);}
-function setAuthState(loggedIn,user=null){currentUser=user;if(loggedIn){if(authPage)authPage.style.display='none';if(app)app.style.display='flex';const us=document.getElementById('userSection');if(us)us.style.display='block';st('userEmail',user.email);st('userRole',user.role);const av=document.getElementById('userAvatar');if(av)av.textContent=user.email.charAt(0).toUpperCase();st('authStatusText','Logged in as '+user.email);showSection('dashboard');}else{if(authPage)authPage.style.display='flex';if(app)app.style.display='none';st('authStatusText','Not logged in');}}
-async function checkHealth(){const btn=document.querySelector('#dashboardHealth').previousElementSibling;if(btn){btn.disabled=true;btn.innerHTML='<span style="font-size:14px;">Checking…</span>';}try{const r=await fetch(API+'/');const d=await r.json();const st=document.getElementById('statusText'),sp=document.getElementById('statusPill'),dh=document.getElementById('dashboardHealth');if(st)st.textContent='Online ('+d.status+')';if(sp)sp.className='statusPill online';if(dh)dh.innerHTML='<span style="color:var(--success);">&#10004; '+d.status+'</span> · '+d.service+' v'+d.version;addResponse('GET','/',d,true);}catch(err){const st=document.getElementById('statusText'),sp=document.getElementById('statusPill'),dh=document.getElementById('dashboardHealth');if(st)st.textContent='Offline';if(sp)sp.className='statusPill';if(dh)dh.innerHTML='<span style="color:var(--danger);">&#10006; Offline</span>';addResponse('GET','/',{error:err.message},false);}finally(){const btn=document.querySelector('#dashboardHealth').previousElementSibling;if(btn){btn.disabled=false;btn.textContent='Check Health';}}}
-async function doLogin(){const email=document.getElementById('loginEmail2').value.trim();const pass=document.getElementById('loginPassword2').value.trim();const res=document.getElementById('loginResult2');res.innerHTML='Signing in…';try{const r=await fetch(API+'/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(r.ok){accessToken=d.access_token;refreshToken=d.refresh_token;setAuthState(true,{id:d.user.id,email:d.user.email,role:d.user.role});res.innerHTML='<span style="color:var(--success);">&#10004; Signed in as '+d.user.email+'</span>';document.getElementById('tokensDisplay2').innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';}else{res.innerHTML='<span style="color:var(--danger);">&#10006; '+(d.error||'Login failed')+'</span>';}addResponse('POST','/api/v1/auth/login',data,r.ok);}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/login',{error:err.message},false);}}
-async function doRegister(){const email=document.getElementById('regEmail2').value.trim();const pass=document.getElementById('regPassword2').value.trim();const res=document.getElementById('regResult2');res.innerHTML='Creating…';try{const r=await fetch(API+'/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; '+d.user.email+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';addResponse('POST','/api/v1/auth/register',data,r.ok);}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/register',{error:err.message},false);}}
-async function doMe2(){const res=document.getElementById('meResult2');res.innerHTML='Fetching…';try{const r=await fetch(API+'/api/v1/auth/me',{headers:{'Authorization':'Bearer '+accessToken}});const d=await r.json();res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; '+d.user.email+' ('+d.user.role+')</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';addResponse('GET','/api/v1/auth/me',data,r.ok);}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/auth/me',{error:err.message},false);}}
-async function doRefresh2(){const token=document.getElementById('refreshToken2').value.trim()||refreshToken;const res=document.getElementById('refreshResult2');res.innerHTML='Refreshing…';try{const r=await fetch(API+'/api/v1/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:token})});const d=await r.json();if(r.ok){accessToken=d.access_token;refreshToken=d.refresh_token;res.innerHTML='<span style="color:var(--success);">&#10004; Refreshed</span>';document.getElementById('tokensDisplay2').innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';}else{res.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';}addResponse('POST','/api/v1/auth/refresh',data,r.ok);}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/refresh',{error:err.message},false);}}
-function doLogout(){accessToken='';refreshToken='';currentUser=null;pendingEmail='';pendingOtpEmail='';stopTimers();if(authPage)authPage.style.display='flex';if(app)app.style.display='none';setMode('signup');document.getElementById('tokensDisplay2').innerHTML='';}
-async function doLogout2(){try{const r=await fetch(API+'/api/v1/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refreshToken})});const d=await r.json();accessToken='';refreshToken='';currentUser=null;setAuthState(false);document.getElementById('tokensDisplay2').innerHTML='';document.getElementById('logoutResult2').innerHTML='<span style="color:var(--success);">&#10004; Signed out</span>';addResponse('POST','/api/v1/auth/logout',data,r.ok);}catch(err){document.getElementById('logoutResult2').innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/logout',{error:err.message},false);}}
-async function doCreateApiKey(){const name=document.getElementById('keyName').value.trim();const perms=document.getElementById('keyPerms').value.split(',').map(s=>s.trim()).filter(Boolean);const expires=document.getElementById('keyExpires').value.trim();const res=document.getElementById('apiKeyResult');res.innerHTML='Creating…';try{const r=await fetch(API+'/api/v1/auth/api-keys',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken},body:JSON.stringify({name,permissions:perms,expires_in_days:expires?parseInt(expires):undefined})});const d=await r.json();if(r.ok){res.innerHTML='<span style="color:var(--success);">&#10004; '+d.name+'</span>';document.getElementById('apiKeyDisplay').innerHTML='<strong>Key:</strong><div class="tokenBox">'+data.key+'</div>';doListApiKeys();}else{res.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';}addResponse('POST','/api/v1/auth/api-keys',data,r.ok);}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/api-keys',{error:err.message},false);}}
-async function doListApiKeys(){const c=document.getElementById('apiKeysList');c.innerHTML='<div style="color:var(--muted);">Loading…</div>';try{const r=await fetch(API+'/api/v1/auth/api-keys',{headers:{'Authorization':'Bearer '+accessToken}});const d=await r.json();if(!r.ok){c.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';addResponse('GET','/api/v1/auth/api-keys',data,false);return;}const keys=d.keys||[];if(keys.length===0){c.innerHTML='<div class="empty">No keys</div>';}else{let h='<table><thead><tr><th>Name</th><th>Key</th><th>Perms</th><th>Action</th></tr></thead><tbody>';keys.forEach(k=>{h+='<tr><td><strong>'+k.name+'</strong></td><td><span class="maskedKey">'+k.key_prefix+'</span></td><td><span class="badge badge-info">'+k.permissions.join(',')+'</span></td><td><button class="btn btn-danger" style="width:auto;padding:6px 10px;" onclick="doRevokeApiKeyById(''+k.id+'')">Revoke</button></td></tr>';});h+='</tbody></table>';c.innerHTML=h;}addResponse('GET','/api/v1/auth/api-keys',{count:keys.length},true);}catch(err){c.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/auth/api-keys',{error:err.message},false);}}
-async function doRevokeApiKeyById(id){const res=document.getElementById('apiKeyResult');res.innerHTML='Revoking…';try{const r=await fetch(API+'/api/v1/auth/api-keys/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+accessToken}});const d=await r.json();res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Revoked</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';addResponse('DELETE','/api/v1/auth/api-keys/'+id,data,r.ok);if(r.ok)doListApiKeys();}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('DELETE','/api/v1/auth/api-keys/'+id,{error:err.message},false);}}
-async function doProjectAlpha(){const res=document.getElementById('projectAlphaResult');res.innerHTML='Fetching…';try{const r=await fetch(API+'/api/v1/project-alpha',{headers:{'Authorization':'Bearer '+accessToken}});const d=await r.json();res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';addResponse('GET','/api/v1/project-alpha',data,r.ok);}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/project-alpha',{error:err.message},false);}}
-async function doProjectBeta(){const res=document.getElementById('projectBetaResult');res.innerHTML='Fetching…';try{const r=await fetch(API+'/api/v1/project-beta',{headers:{'Authorization':'Bearer '+accessToken}});const d=await r.json();res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';addResponse('GET','/api/v1/project-beta',data,r.ok);}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/project-beta',{error:err.message},false);}}
-async function doInitDb(){const res=document.getElementById('initDbResult');res.innerHTML='Initializing…';try{const r=await fetch(API+'/api/v1/db/_init');const d=await r.json();res.innerHTML='<span style="color:var(--success);">&#10004; '+d.status+'</span>';addResponse('POST','/api/v1/db/_init',data,true);doListItems();}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/db/_init',{error:err.message},false);}}
-async function doListItems(){const body=document.getElementById('dbItemsBody'),countEl=document.getElementById('dbItemCount');body.innerHTML='<tr><td colspan="4" style="color:var(--muted);">Loading…</td></tr>';try{const r=await fetch(API+'/api/v1/db/items');const d=await r.json();const items=d.items||[];if(countEl)countEl.textContent=items.length+' item'+(items.length!==1?'s':'');body.innerHTML='';if(items.length===0){body.innerHTML='<tr><td colspan="4" class="empty">No items</td></tr>';return;}items.forEach(item=>{const tr=document.createElement('tr');tr.innerHTML='<td><span style="font-family:monospace;font-size:0.8rem;color:var(--accent);">#'+item.id+'</span></td><td><strong>'+escapeHtml(item.name)+'</strong></td>';body.appendChild(tr);});addResponse('GET','/api/v1/db/items',{count:items.length},true);}catch(err){body.innerHTML='<tr><td colspan="4" style="color:var(--danger);">&#10006; '+err.message+'</td></tr>';addResponse('GET','/api/v1/db/items',{error:err.message},false);}}
-async function doCreateItem(){const name=document.getElementById('dbItemName').value.trim();const res=document.getElementById('dbCreateResult');res.innerHTML='Creating…';try{const r=await fetch(API+'/api/v1/db/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});const d=await r.json();res.innerHTML='<span style="color:var(--success);">&#10004; "'+data.name+'"</span>';document.getElementById('dbItemName').value='';addResponse('POST','/api/v1/db/items',data,true);doListItems();}catch(err){res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/db/items',{error:err.message},false);}}
-function escapeHtml(str){const div=document.createElement('div');div.textContent=str;return div.innerHTML;}
-setMode('signup');checkHealth();setInterval(checkHealth,30000);
+
+async function step2Verify(){
+const codeInput=document.getElementById('otpCodeInput');
+const btn=document.querySelector('#stepOtpSent .btn-primary');
+if(!codeInput||!btn)return;
+const code=codeInput.value.trim();
+if(!code){showAuthAlert('Enter code');return;}
+btn.disabled=true;
+btn.textContent='Verifying…';
+try{
+const r=await fetch(API+'/api/v1/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:pendingOtpEmail,code})});
+const d=await r.json();
+if(!r.ok){showAuthAlert(d.error||'Invalid code');btn.disabled=false;btn.textContent='Verify Code';return;}
+accessToken=d.access_token;
+refreshToken=d.refresh_token;
+currentUser={id:d.user.id,email:d.user.email,role:d.user.role};
+stopTimers();
+sh('stepOtpSent',false);
+sh('stepSuccess',true);
+const tokens=document.getElementById('stepTokens');
+if(tokens){
+tokens.style.display='block';
+tokens.innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';
+}
+updateSteps(3);
+setTimeout(()=>enterApp(),1200);
+}catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent='Verify Code';}
+}
+
+function enterApp(){
+if(authPage)authPage.style.display='none';
+if(app)app.style.display='flex';
+const us=document.getElementById('userSection');
+if(us)us.style.display='block';
+st('userEmail',currentUser.email);
+st('userRole',currentUser.role);
+const av=document.getElementById('userAvatar');
+if(av)av.textContent=currentUser.email.charAt(0).toUpperCase();
+st('authStatusText','Logged in as '+currentUser.email);
+showSection('dashboard');
+checkHealth();
+}
+
+function showSection(name){
+document.querySelectorAll('.tabContent').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.navItem').forEach(n=>n.classList.remove('active'));
+const s=document.getElementById('section-'+name);
+const n=document.getElementById('nav'+name.charAt(0).toUpperCase()+name.slice(1));
+if(s)s.classList.add('active');
+if(n)n.classList.add('active');
+const t=document.getElementById('sectionTitle');
+if(t)t.textContent=name.charAt(0).toUpperCase()+name.slice(1);
+}
+
+function addResponse(method,path,data,ok=true){
+const log=document.getElementById('responseLog');
+if(!log)return;
+const div=document.createElement('div');
+div.className='resultRow';
+const time=new Date().toLocaleTimeString();
+div.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex:1;"><span class="method '+method.toLowerCase()+'">'+method+'</span><span style="font-size:0.8rem;color:var(--muted);">'+path+'</span><span style="font-size:0.75rem;color:var(--muted);margin-left:auto;">'+time+'</span><span class="badge '+(ok?'badge-ok':'badge-err')+'">'+(ok?'OK':'ERROR')+'</span></div><div style="font-size:0.7rem;color:var(--muted);max-width:400px;word-break:break-all;" title="'+JSON.stringify(data)+'">'+(ok?formatResponse(data):(data.error||data.message||String(data)))+'</div>';
+log.prepend(div);
+while(log.children.length>20)log.removeChild(log.lastChild);
+}
+
+function formatResponse(d){
+if(!d)return '—';
+if(d.status==='ok')return '✅ '+d.status+' · '+(d.service||'')+' v'+(d.version||'');
+if(d.created)return '✅ Created: '+d.name+' (id:'+d.id+')';
+if(d.deleted)return '✅ Deleted id:'+d.id;
+if(d.otp_code)return '📧 OTP: '+d.otp_code;
+if(d.key)return '🔑 Key: '+d.key;
+if(Array.isArray(d.items))return '📦 '+d.count+' items';
+if(d.item)return '📄 Item '+d.item.id+': '+d.item.name;
+if(typeof d==='object')return Object.entries(d).map(([k,v])=>k+': '+v).join(' • ');
+return String(d);
+}
+
+function setAuthState(loggedIn,user=null){
+currentUser=user;
+if(loggedIn){
+if(authPage)authPage.style.display='none';
+if(app)app.style.display='flex';
+const us=document.getElementById('userSection');
+if(us)us.style.display='block';
+st('userEmail',user.email);
+st('userRole',user.role);
+const av=document.getElementById('userAvatar');
+if(av)av.textContent=user.email.charAt(0).toUpperCase();
+st('authStatusText','Logged in as '+user.email);
+showSection('dashboard');
+}else{
+if(authPage)authPage.style.display='flex';
+if(app)app.style.display='none';
+st('authStatusText','Not logged in');
+}
+}
+
+async function checkHealth(){
+const btn=document.querySelector('#dashboardHealth').previousElementSibling;
+if(btn){btn.disabled=true;btn.innerHTML='<span style="font-size:14px;">Checking…</span>';}
+try{
+const r=await fetch(API+'/');
+const d=await r.json();
+const st=document.getElementById('statusText');
+const sp=document.getElementById('statusPill');
+const dh=document.getElementById('dashboardHealth');
+if(st)st.textContent='Online ('+d.status+')';
+if(sp)sp.className='statusPill online';
+if(dh)dh.innerHTML='<span style="color:var(--success);">&#10004; '+d.status+'</span> · '+d.service+' v'+d.version;
+addResponse('GET','/',d,true);
+}catch(err){
+const st=document.getElementById('statusText');
+const sp=document.getElementById('statusPill');
+const dh=document.getElementById('dashboardHealth');
+if(st)st.textContent='Offline';
+if(sp)sp.className='statusPill';
+if(dh)dh.innerHTML='<span style="color:var(--danger);">&#10006; Offline</span>';
+addResponse('GET','/',{error:err.message},false);
+}finally(){
+const btn=document.querySelector('#dashboardHealth').previousElementSibling;
+if(btn){btn.disabled=false;btn.textContent='Check Health';}
+}
+}
+
+async function doLogin(){
+const email=document.getElementById('loginEmail2').value.trim();
+const pass=document.getElementById('loginPassword2').value.trim();
+const res=document.getElementById('loginResult2');
+res.innerHTML='Signing in…';
+try{
+const r=await fetch(API+'/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+const d=await r.json();
+if(r.ok){
+accessToken=d.access_token;
+refreshToken=d.refresh_token;
+setAuthState(true,{id:d.user.id,email:d.user.email,role:d.user.role});
+res.innerHTML='<span style="color:var(--success);">&#10004; Signed in as '+d.user.email+'</span>';
+document.getElementById('tokensDisplay2').innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';
+}else{
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+(d.error||'Login failed')+'</span>';
+}
+addResponse('POST','/api/v1/auth/login',data,r.ok);
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('POST','/api/v1/auth/login',{error:err.message},false);
+}
+}
+
+async function doRegister(){
+const email=document.getElementById('regEmail2').value.trim();
+const pass=document.getElementById('regPassword2').value.trim();
+const res=document.getElementById('regResult2');
+res.innerHTML='Creating…';
+try{
+const r=await fetch(API+'/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+const d=await r.json();
+res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; '+d.user.email+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
+addResponse('POST','/api/v1/auth/register',data,r.ok);
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('POST','/api/v1/auth/register',{error:err.message},false);
+}
+}
+
+async function doMe2(){
+const res=document.getElementById('meResult2');
+res.innerHTML='Fetching…';
+try{
+const r=await fetch(API+'/api/v1/auth/me',{headers:{'Authorization':'Bearer '+accessToken}});
+const d=await r.json();
+res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; '+d.user.email+' ('+d.user.role+')</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
+addResponse('GET','/api/v1/auth/me',data,r.ok);
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('GET','/api/v1/auth/me',{error:err.message},false);
+}
+}
+
+async function doRefresh2(){
+const token=document.getElementById('refreshToken2').value.trim()||refreshToken;
+const res=document.getElementById('refreshResult2');
+res.innerHTML='Refreshing…';
+try{
+const r=await fetch(API+'/api/v1/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:token})});
+const d=await r.json();
+if(r.ok){
+accessToken=d.access_token;
+refreshToken=d.refresh_token;
+res.innerHTML='<span style="color:var(--success);">&#10004; Refreshed</span>';
+document.getElementById('tokensDisplay2').innerHTML='<strong>Access:</strong><div class="tokenBox">'+accessToken+'</div><strong>Refresh:</strong><div class="tokenBox">'+refreshToken+'</div>';
+}else{
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
+}
+addResponse('POST','/api/v1/auth/refresh',data,r.ok);
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('POST','/api/v1/auth/refresh',{error:err.message},false);
+}
+}
+
+function doLogout(){
+accessToken='';
+refreshToken='';
+currentUser=null;
+pendingEmail='';
+pendingOtpEmail='';
+stopTimers();
+if(authPage)authPage.style.display='flex';
+if(app)app.style.display='none';
+setMode('signup');
+document.getElementById('tokensDisplay2').innerHTML='';
+}
+
+async function doLogout2(){
+try{
+const r=await fetch(API+'/api/v1/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refreshToken})});
+const d=await r.json();
+accessToken='';
+refreshToken='';
+currentUser=null;
+setAuthState(false);
+document.getElementById('tokensDisplay2').innerHTML='';
+document.getElementById('logoutResult2').innerHTML='<span style="color:var(--success);">&#10004; Signed out</span>';
+addResponse('POST','/api/v1/auth/logout',data,r.ok);
+}catch(err){
+document.getElementById('logoutResult2').innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('POST','/api/v1/auth/logout',{error:err.message},false);
+}
+}
+
+async function doCreateApiKey(){
+const name=document.getElementById('keyName').value.trim();
+const perms=document.getElementById('keyPerms').value.split(',').map(s=>s.trim()).filter(Boolean);
+const expires=document.getElementById('keyExpires').value.trim();
+const res=document.getElementById('apiKeyResult');
+res.innerHTML='Creating…';
+try{
+const r=await fetch(API+'/api/v1/auth/api-keys',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken},body:JSON.stringify({name,permissions:perms,expires_in_days:expires?parseInt(expires):undefined})});
+const d=await r.json();
+if(r.ok){
+res.innerHTML='<span style="color:var(--success);">&#10004; '+d.name+'</span>';
+document.getElementById('apiKeyDisplay').innerHTML='<strong>Key:</strong><div class="tokenBox">'+data.key+'</div>';
+doListApiKeys();
+}else{
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
+}
+addResponse('POST','/api/v1/auth/api-keys',data,r.ok);
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('POST','/api/v1/auth/api-keys',{error:err.message},false);
+}
+}
+
+async function doListApiKeys(){
+const c=document.getElementById('apiKeysList');
+c.innerHTML='<div style="color:var(--muted);">Loading…</div>';
+try{
+const r=await fetch(API+'/api/v1/auth/api-keys',{headers:{'Authorization':'Bearer '+accessToken}});
+const d=await r.json();
+if(!r.ok){
+c.innerHTML='<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
+addResponse('GET','/api/v1/auth/api-keys',data,false);
+return;
+}
+const keys=d.keys||[];
+if(keys.length===0){
+c.innerHTML='<div class="empty">No keys</div>';
+}else{
+let h='<table><thead><tr><th>Name</th><th>Key</th><th>Perms</th><th>Action</th></tr></thead><tbody>';
+keys.forEach(k=>{
+h+='<tr><td><strong>'+k.name+'</strong></td><td><span class="maskedKey">'+k.key_prefix+'</span></td><td><span class="badge badge-info">'+k.permissions.join(',')+'</span></td><td><button class="btn btn-danger" style="width:auto;padding:6px 10px;" onclick="doRevokeApiKeyById(\''+k.id+'\')">Revoke</button></td></tr>';
+});
+h+='</tbody></table>';
+c.innerHTML=h;
+}
+addResponse('GET','/api/v1/auth/api-keys',{count:keys.length},true);
+}catch(err){
+c.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('GET','/api/v1/auth/api-keys',{error:err.message},false);
+}
+}
+
+async function doRevokeApiKeyById(id){
+const res=document.getElementById('apiKeyResult');
+res.innerHTML='Revoking…';
+try{
+const r=await fetch(API+'/api/v1/auth/api-keys/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+accessToken}});
+const d=await r.json();
+res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Revoked</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
+addResponse('DELETE','/api/v1/auth/api-keys/'+id,data,r.ok);
+if(r.ok)doListApiKeys();
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('DELETE','/api/v1/auth/api-keys/'+id,{error:err.message},false);
+}
+}
+
+async function doProjectAlpha(){
+const res=document.getElementById('projectAlphaResult');
+res.innerHTML='Fetching…';
+try{
+const r=await fetch(API+'/api/v1/project-alpha',{headers:{'Authorization':'Bearer '+accessToken}});
+const d=await r.json();
+res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
+addResponse('GET','/api/v1/project-alpha',data,r.ok);
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('GET','/api/v1/project-alpha',{error:err.message},false);
+}
+}
+
+async function doProjectBeta(){
+const res=document.getElementById('projectBetaResult');
+res.innerHTML='Fetching…';
+try{
+const r=await fetch(API+'/api/v1/project-beta',{headers:{'Authorization':'Bearer '+accessToken}});
+const d=await r.json();
+res.innerHTML=r.ok?'<span style="color:var(--success);">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>':'<span style="color:var(--danger);">&#10006; '+d.error+'</span>';
+addResponse('GET','/api/v1/project-beta',data,r.ok);
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('GET','/api/v1/project-beta',{error:err.message},false);
+}
+}
+
+async function doInitDb(){
+const res=document.getElementById('initDbResult');
+res.innerHTML='Initializing…';
+try{
+const r=await fetch(API+'/api/v1/db/_init');
+const d=await r.json();
+res.innerHTML='<span style="color:var(--success);">&#10004; '+d.status+'</span>';
+addResponse('POST','/api/v1/db/_init',data,true);
+doListItems();
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('POST','/api/v1/db/_init',{error:err.message},false);
+}
+}
+
+async function doListItems(){
+const body=document.getElementById('dbItemsBody');
+const countEl=document.getElementById('dbItemCount');
+body.innerHTML='<tr><td colspan="4" style="color:var(--muted);">Loading…</td></tr>';
+try{
+const r=await fetch(API+'/api/v1/db/items');
+const d=await r.json();
+const items=d.items||[];
+if(countEl)countEl.textContent=items.length+' item'+(items.length!==1?'s':'');
+body.innerHTML='';
+if(items.length===0){
+body.innerHTML='<tr><td colspan="4" class="empty">No items</td></tr>';
+return;
+}
+items.forEach(item=>{
+const tr=document.createElement('tr');
+tr.innerHTML='<td><span style="font-family:monospace;font-size:0.8rem;color:var(--accent);">#'+item.id+'</span></td><td><strong>'+escapeHtml(item.name)+'</strong></td>';
+body.appendChild(tr);
+});
+addResponse('GET','/api/v1/db/items',{count:items.length},true);
+}catch(err){
+body.innerHTML='<tr><td colspan="4" style="color:var(--danger);">&#10006; '+err.message+'</td></tr>';
+addResponse('GET','/api/v1/db/items',{error:err.message},false);
+}
+}
+
+async function doCreateItem(){
+const name=document.getElementById('dbItemName').value.trim();
+const res=document.getElementById('dbCreateResult');
+res.innerHTML='Creating…';
+try{
+const r=await fetch(API+'/api/v1/db/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+const d=await r.json();
+res.innerHTML='<span style="color:var(--success);">&#10004; "'+data.name+'"</span>';
+document.getElementById('dbItemName').value='';
+addResponse('POST','/api/v1/db/items',data,true);
+doListItems();
+}catch(err){
+res.innerHTML='<span style="color:var(--danger);">&#10006; '+err.message+'</span>';
+addResponse('POST','/api/v1/db/items',{error:err.message},false);
+}
+}
+
+function escapeHtml(str){
+const div=document.createElement('div');
+div.textContent=str;
+return div.innerHTML;
+}
+
+setMode('signup');
+checkHealth();
+setInterval(checkHealth,30000);
 </script>
 </body>
 </html>
