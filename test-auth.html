@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>API Console &mdash; Universal API Server</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f172a; --sidebar: #1e293b; --card: #1e293b; --card-hover: #2d3748;
+      --border: #334155; --accent: #38bdf8; --accent-hover: #7dd3fc;
+      --success: #22c55e; --success-bg: #166534;
+      --danger: #ef4444; --danger-bg: #991b1b;
+      --warning: #f59e0b; --warning-bg: #78350f;
+      --text: #f1f5f9; --muted: #94a3b8; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; }
+
+    /* ---------- Auth Page (Login/Signup) ---------- */
+    #authPage { display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 24px; }
+    .authCard { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 100%; max-width: 440px; box-shadow: var(--shadow); }
+    .authCard h1 { color: var(--accent); font-size: 1.5rem; margin-bottom: 8px; }
+    .authCard .subtitle { color: var(--muted); font-size: 0.875rem; margin-bottom: 24px; }
+    .modeToggle { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    .modeBtn { flex: 1; background: transparent; border: none; color: var(--muted); padding: 10px; font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .modeBtn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+    .modeBtn:hover { color: var(--text); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+    .form-group input { width: 100%; padding: 10px 12px; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem; }
+    .form-group input:focus { outline: none; border-color: var(--accent); }
+    .form-group input::placeholder { color: #475569; }
+    .form-group input:disabled { background: #1e293b; opacity: 0.6; cursor: not-allowed; }
+    .btn { border: none; border-radius: 6px; padding: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #000; } .btn-primary:hover { background: var(--accent-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); } .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-secondary { background: var(--card-hover); border: 1px solid var(--border); color: var(--text); } .btn-secondary:hover { border-color: var(--accent); }
+    .otpBox { background: #166534; border: 2px solid var(--accent); border-radius: 10px; padding: 16px 20px; margin-top: 16px; text-align: center; box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); display: none; }
+    .otpBox.show { display: block; }
+    .otpBox .label { display: block; font-size: 0.75rem; color: #bbf7d0; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+    .otpCode { font-size: 1.75rem; font-weight: 800; color: var(--accent); font-family: 'Menlo', 'Monaco', monospace; letter-spacing: 3px; margin-bottom: 12px; }
+    .otpActions { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+    .otpActions .btn { width: auto; flex: 1; padding: 8px 12px; font-size: 0.8rem; }
+    .copyHint { font-size: 0.7rem; color: #bbf7d0; margin-top: 8px; animation: copyPulse 1s ease-in-out; }
+    @keyframes copyPulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    .timerBox { background: #0f172a; border: 1px dashed var(--border); border-radius: 8px; padding: 10px; margin-top: 12px; text-align: center; }
+    .timerLabel { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .timerValue { font-size: 1.1rem; font-weight: 700; color: var(--accent); font-family: 'Menlo', 'Monaco', monospace; }
+    .timerValue.expiring { color: var(--danger); animation: blink 1s infinite; }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .btn.resendDisabled { opacity: 0.4; cursor: not-allowed; background: #334155; border-color: #334155; }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--muted); font-size: 0.75rem; }
+    .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
+    .otpNote { background: var(--warning-bg); border: 1px solid #d97706; border-radius: 6px; padding: 12px; font-size: 0.8rem; color: #fef3c7; margin-bottom: 16px; }
+    .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 0.85rem; display: none; }
+    .alert.error { background: var(--danger-bg); color: #fecaca; border: 1px solid #dc2626; }
+    .alert.success { background: var(--success-bg); color: #bbf7d0; border: 1px solid #166534; }
+    .stepIndicator { display: flex; gap: 4px; margin-bottom: 20px; }
+    .step { flex: 1; height: 3px; background: #334155; border-radius: 2px; }
+    .step.active { background: var(--accent); }
+    .step.completed { background: var(--success); }
+
+    /* ---------- App Layout ---------- */
+    #app { display: none; flex: 1; height: 100vh; }
+    #app.visible { display: flex; }
+    .sidebar { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
+    .sidebarBrand { padding: 20px; border-bottom: 1px solid var(--border); }
+    .sidebarBrand h2 { color: var(--accent); font-size: 1.1rem; }
+    .sidebarBrand p { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+    .nav { flex: 1; overflow-y: auto; padding: 12px 0; }
+    .navItem { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--muted); cursor: pointer; font-size: 0.85rem; border-left: 3px solid transparent; transition: all 0.2s; }
+    .navItem:hover { background: var(--card-hover); color: var(--text); }
+    .navItem.active { background: rgba(56, 189, 248, 0.1); color: var(--accent); border-left: 3px solid var(--accent); }
+    .navItem .icon { width: 20px; text-align: center; }
+    .userSection { padding: 16px 20px; border-top: 1px solid var(--border); }
+    .userInfo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .userAvatar { width: 32px; height: 32px; background: var(--accent); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }
+    .userDetails { flex: 1; min-width: 0; }
+    .userEmail { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .userRole { font-size: 0.7rem; color: var(--muted); }
+    .logoutBtn { width: 100%; background: transparent; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; cursor: pointer; }
+    .logoutBtn:hover { background: var(--danger-bg); border-color: var(--danger); color: #fecaca; }
+
+    .main { flex: 1; overflow-y: auto; padding: 24px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .topbar h1 { font-size: 1.25rem; color: var(--accent); }
+    .statusRow { display: flex; gap: 12px; align-items: center; }
+    .statusPill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; border: 1px solid var(--border); background: var(--card); }
+    .statusPill .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: pulse 2s infinite; }
+    .statusPill.online .dot { background: var(--success); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: var(--shadow); }
+    .card h2 { font-size: 1rem; margin-bottom: 14px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+    .card h2 .icon { font-size: 1.1rem; }
+
+    .authState { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 10px; background: var(--card-hover); border-radius: 6px; border: 1px solid var(--border); }
+    .authState .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+    .authState span { font-size: 0.8rem; color: var(--muted); }
+
+    .form-group { margin-bottom: 12px; }
+    .btn-full { width: 100%; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th { text-align: left; padding: 10px; font-size: 0.75rem; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    tr:hover { background: var(--card-hover); }
+
+    .empty { color: var(--muted); font-style: italic; text-align: center; padding: 24px; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+    .badge-ok { background: var(--success-bg); color: #bbf7d0; } .badge-err { background: var(--danger-bg); color: #fecaca; } .badge-info { background: var(--warning-bg); color: #fef3c7; }
+    .resultRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding: 10px; background: var(--card-hover); border-radius: 6px; border: 1px solid var(--border); word-break: break-all; font-size: 0.8rem; }
+    .resultRow .ok { color: var(--success); } .resultRow .err { color: var(--danger); }
+    .resultRow .method { font-family: monospace; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: #0f172a; }
+    .method.get { background: #166534; color: #bbf7d0; } .method.post { background: #1d4ed8; color: #bfdbfe; } .method.delete { background: var(--danger-bg); color: #fecaca; }
+
+    .tokenBox { font-family: 'Menlo', 'Monaco', monospace; font-size: 0.7rem; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; padding: 10px; word-break: break-all; margin-top: 8px; color: #bbf7d0; max-height: 60px; overflow-y: auto; }
+
+    .maskedKey { font-family: monospace; font-size: 0.8rem; color: var(--accent); }
+
+    .tabContent { display: none; }
+    .tabContent.active { display: block; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { padding: 16px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth Page -->
+  <div id="authPage">
+    <div class="authCard">
+      <h1 id="authTitle">Create Account</h1>
+      <div class="subtitle" id="authSubtitle">Join the Universal API Server</div>
+      <div id="authAlert" class="alert error"></div>
+
+      <!-- Mode Toggle -->
+      <div class="modeToggle">
+        <button class="modeBtn active" id="modeSignup" onclick="setMode('signup')">Create Account</button>
+        <button class="modeBtn" id="modeLogin" onclick="setMode('login')">Sign In</button>
+      </div>
+
+      <!-- Step Indicator -->
+      <div class="stepIndicator">
+        <div class="step active" id="step1"></div>
+        <div class="step" id="step2"></div>
+        <div class="step" id="step3"></div>
+      </div>
+
+      <!-- Step 1: Credentials -->
+      <div id="stepCredentials">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="authEmail" placeholder="you@example.com" />
+        </div>
+        <div class="form-group" id="passwordGroup">
+          <label>Password</label>
+          <input type="password" id="authPassword" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary" id="btnStep1" onclick="step1Next()">Continue</button>
+      </div>
+
+      <!-- Step 2: OTP Sent -->
+      <div id="stepOtpSent" style="display:none; text-align:center;">
+        <div style="font-size:3rem; margin-bottom:12px;">📧</div>
+        <div style="color:var(--muted); margin-bottom:16px;">We&rsquo;ve sent a 6-digit code to</div>
+        <div style="font-weight:600; color:var(--text); margin-bottom:20px;" id="otpTargetEmail"></div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>Verification Code</label>
+          <input type="text" id="otpCodeInput" placeholder="123456" maxlength="6" style="text-align:center; font-size:1.25rem; letter-spacing:2px;" />
+        </div>
+        <div class="otpCode" id="otpCodeDisplay" onclick="copyOTP()" style="cursor:pointer; margin-bottom:8px;"></div>
+        <div id="otpResend" style="font-size:0.8rem; color:var(--accent); cursor:pointer; margin-bottom:16px;">Didn&rsquo;t receive it? <span id="resendLink" style="text-decoration:underline;">Resend code</span></div>
+        <button class="btn btn-primary" onclick="step2Verify()">Verify Code</button>
+        <button class="btn btn-outline" onclick="step1Back()">Back</button>
+      </div>
+
+      <!-- Step 3: Success -->
+      <div id="stepSuccess" style="display:none; text-align:center;">
+        <div style="font-size:3rem; margin-bottom:12px;">✅</div>
+        <div style="color:var(--success); font-weight:600; margin-bottom:16px;">Account Verified!</div>
+        <div style="color:var(--muted); margin-bottom:20px;">Redirecting to your dashboard&hellip;</div>
+        <div class="tokenBox" style="display:none;" id="stepTokens"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="app">
+    <div class="sidebar">
+      <div class="sidebarBrand">
+        <h2>🔐 API Console</h2>
+        <p>Universal API Server v2.0.0</p>
+      </div>
+      <div class="nav">
+        <div class="navItem active" onclick="showSection('dashboard')" id="navDashboard">
+          <span class="icon">📊</span> Dashboard
+        </div>
+        <div class="navItem" onclick="showSection('apikeys')" id="navAPIKeys">
+          <span class="icon">🗝️</span> API Keys
+        </div>
+        <div class="navItem" onclick="showSection('projects')" id="navProjects">
+          <span class="icon">🅰️</span> Projects
+        </div>
+        <div class="navItem" onclick="showSection('database')" id="navDatabase">
+          <span class="icon">🗄️</span> Database
+        </div>
+      </div>
+      <div class="userSection" id="userSection">
+        <div class="userInfo">
+          <div class="userAvatar" id="userAvatar">U</div>
+          <div class="userDetails">
+            <div class="userEmail" id="userEmail">user@example.com</div>
+            <div class="userRole" id="userRole">User</div>
+          </div>
+        </div>
+        <button class="logoutBtn" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <h1 id="sectionTitle">Dashboard</h1>
+        <div class="statusRow">
+          <div class="statusPill" id="statusPill">
+            <div class="dot"></div>
+            <span id="statusText">Checking server...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="section-dashboard" class="tabContent active">
+        <div class="grid">
+          <div class="card">
+            <h2><span class="icon">🏥</span>Server Health</h2>
+            <button class="btn-outline btn-sm btn-full" onclick="checkHealth()">Check Server Status</button>
+            <div id="dashboardHealth" class="empty">Not checked yet</div>
+          </div>
+          <div class="card">
+            <h2><span class="icon">📋</span>Quick Actions</h2>
+            <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 12px;">Get started with the API</p>
+            <button class="btn-success btn-sm btn-full" onclick="showSection('apikeys')">Create API Key</button>
+            <button class="btn-outline btn-sm btn-full" style="margin-top:8px;" onclick="showSection('database')">Manage Database</button>
+          </div>
+          <div class="card">
+            <h2><span class="icon">📡</span>Recent Activity</h2>
+            <div id="dashboardLog"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys -->
+      <div id="section-apikeys" class="tabContent">
+        <div class="card">
+          <h2><span class="icon">🗝️</span>Create API Key</h2>
+          <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 10px;">Service-to-service authentication key. Plaintext key shown only once.</p>
+          <div class="form-group"><label>Key Name</label><input type="text" id="keyName" placeholder="my-service-key"/></div>
+          <div class="form-group"><label>Permissions (comma-separated)</label><input type="text" id="keyPerms" placeholder="read,write"/></div>
+          <div class="form-group"><label>Expires In Days (optional)</label><input type="text" id="keyExpires" placeholder="30"/></div>
+          <button class="btn-success btn-sm" onclick="doCreateApiKey()">Create Key</button>
+          <div id="apiKeyResult" class="empty"></div>
+          <div id="apiKeyDisplay" class="tokenBox"></div>
+        </div>
+
+        <div class="card">
+          <h2><span class="icon">📋</span>My API Keys</h2>
+          <button class="btn-outline btn-sm" onclick="doListApiKeys()">Refresh List</button>
+          <div id="apiKeysList"></div>
+        </div>
+      </div>
+
+      <!-- Projects -->
+      <div id="section-projects" class="tabContent">
+        <div class="card">
+          <h2><span class="icon">🅰️</span>Project Alpha (Sandbox)</h2>
+          <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 10px;">Protected sandbox for Project Alpha.</p>
+          <button class="btn-outline btn-sm" onclick="doProjectAlpha()">Test Project Alpha</button>
+          <div id="projectAlphaResult" class="empty"></div>
+        </div>
+        <div class="card">
+          <h2><span class="icon">🅱️</span>Project Beta (Sandbox)</h2>
+          <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 10px;">Protected sandbox for Project Beta.</p>
+          <button class="btn-outline btn-sm" onclick="doProjectBeta()">Test Project Beta</button>
+          <div id="projectBetaResult" class="empty"></div>
+        </div>
+      </div>
+
+      <!-- Database -->
+      <div id="section-database" class="tabContent">
+        <div class="card">
+          <h2><span class="icon">🗄️</span>Database Setup</h2>
+          <button class="btn-success btn-sm" onclick="doInitDb()">Initialize D1 Tables</button>
+          <div id="initDbResult" class="empty"></div>
+        </div>
+        <div class="card">
+          <h2><span class="icon">📋</span>Items</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <button class="btn-outline btn-sm" onclick="doListItems()">Refresh Items</button>
+            <span id="dbItemCount" style="font-size: 0.8rem; color: var(--muted);">0 items</span>
+          </div>
+          <table id="dbItemsTable">
+            <thead><tr><th style="width:60px;">ID</th><th>Name</th><th style="width:160px;">Created At</th><th style="width:120px;">Action</th></tr></thead>
+            <tbody id="dbItemsBody"><tr><td colspan="4" class="empty">No items yet.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2><span class="icon">➕</span>Create Item</h2>
+          <div class="form-group"><label>Item Name</label><input type="text" id="dbItemName" placeholder="e.g. Test item"/></div>
+          <button class="btn-primary btn-sm" onclick="doCreateItem()">Create Item</button>
+          <div id="dbCreateResult" class="empty"></div>
+        </div>
+      </div>
+
+      <!-- Live Responses -->
+      <div class="card" style="margin-top:0;">
+        <h2><span class="icon">📡</span>Live API Responses</h2>
+        <div id="responseLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://universal-api-server.ecomadebisi8-94e.workers.dev';
+    let accessToken = '';
+    let refreshToken = '';
+    let currentUser = null;
+    let pendingEmail = '';
+    let pendingPassword = '';
+    let pendingOtpEmail = '';
+    let isSignup = true;
+    let resendInterval = null;
+    let expiryInterval = null;
+    let resendSecondsLeft = 60;
+    let expirySecondsLeft = 600;
+
+    // Auth page elements
+    const authPage = document.getElementById('authPage');
+    const app = document.getElementById('app');
+    const serverStatus = document.getElementById('serverStatus');
+    const authAlert = document.getElementById('authAlert');
+    const responseLog = document.getElementById('responseLog');
+
+    // Auth flow state
+    function setMode(mode) {
+      isSignup = mode === 'signup';
+      document.getElementById('modeSignup').classList.toggle('active', isSignup);
+      document.getElementById('modeLogin').classList.toggle('active', !isSignup);
+      document.getElementById('passwordGroup').style.display = isSignup ? 'block' : 'none';
+      document.getElementById('authTitle').textContent = isSignup ? 'Create Account' : 'Sign In';
+      document.getElementById('authSubtitle').textContent = isSignup ? 'Join the Universal API Server' : 'Welcome back to your account';
+      document.getElementById('btnStep1').textContent = isSignup ? 'Create Account' : 'Send Code';
+      document.getElementById('authAlert').style.display = 'none';
+      document.getElementById('authEmail').value = '';
+      document.getElementById('authPassword').value = '';
+      document.getElementById('stepCredentials').style.display = 'block';
+      document.getElementById('stepOtpSent').style.display = 'none';
+      document.getElementById('stepSuccess').style.display = 'none';
+      updateSteps(1);
+    }
+
+    function updateSteps(activeStep) {
+      document.querySelectorAll('.step').forEach((s, i) => {
+        s.className = 'step';
+        if (i < activeStep - 1) s.classList.add('completed');
+        if (i === activeStep - 1) s.classList.add('active');
+      });
+    }
+
+    function startResendTimer() {
+      resendSecondsLeft = 60;
+      document.getElementById('resendTimerBox').style.display = 'block';
+      document.getElementById('resendLink').style.display = 'none';
+      document.getElementById('resendLink').classList.add('resendDisabled');
+      if (resendInterval) clearInterval(resendInterval);
+      resendInterval = setInterval(() => {
+        resendSecondsLeft--;
+        const m = Math.floor(resendSecondsLeft / 60);
+        const s = resendSecondsLeft % 60;
+        document.getElementById('resendTimerValue').textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+        if (resendSecondsLeft <= 0) {
+          clearInterval(resendInterval);
+          resendInterval = null;
+          document.getElementById('resendTimerBox').style.display = 'none';
+          document.getElementById('resendLink').style.display = 'inline';
+          document.getElementById('resendLink').classList.remove('resendDisabled');
+        }
+      }, 1000);
+    }
+
+    function startExpiryTimer() {
+      expirySecondsLeft = 600;
+      document.getElementById('expiryTimerBox').style.display = 'block';
+      if (expiryInterval) clearInterval(expiryInterval);
+      expiryInterval = setInterval(() => {
+        expirySecondsLeft--;
+        const m = Math.floor(expirySecondsLeft / 60);
+        const s = expirySecondsLeft % 60;
+        const el = document.getElementById('expiryTimerValue');
+        el.textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+        if (expirySecondsLeft <= 30) el.classList.add('expiring');
+        if (expirySecondsLeft <= 0) {
+          clearInterval(expiryInterval);
+          expiryInterval = null;
+          el.textContent = '00:00';
+          el.classList.add('expiring');
+        }
+      }, 1000);
+    }
+
+    function stopTimers() {
+      if (resendInterval) { clearInterval(resendInterval); resendInterval = null; }
+      if (expiryInterval) { clearInterval(expiryInterval); expiryInterval = null; }
+    }
+
+    function copyOTP() {
+      const code = document.getElementById('otpCodeDisplay').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const hint = document.getElementById('copyHint');
+        hint.style.display = 'block';
+        setTimeout(() => { hint.style.display = 'none'; }, 1500);
+      });
+    }
+
+    function step1Next() {
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value.trim();
+      const btn = document.getElementById('btnStep1');
+      authAlert.style.display = 'none';
+
+      if (!email) { authAlert.textContent = 'Please enter your email'; authAlert.style.display = 'block'; return; }
+      if (isSignup && !password) { authAlert.textContent = 'Please enter a password'; authAlert.style.display = 'block'; return; }
+
+      btn.disabled = true;
+      btn.textContent = isSignup ? 'Creating account...' : 'Sending code...';
+
+      if (isSignup) {
+        // Signup: Register first, then send OTP
+        fetch(`${API}/api/v1/auth/register`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        }).then(async r => {
+          const data = await r.json();
+          if (!r.ok) {
+            authAlert.textContent = data.error || 'Registration failed';
+            authAlert.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Create Account';
+            return;
+          }
+          pendingEmail = email;
+          pendingPassword = password;
+          return fetch(`${API}/api/v1/auth/send-otp`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+        }).then(async r => {
+          if (!r) return;
+          const data = await r.json();
+          if (!r.ok) {
+            authAlert.textContent = data.error || 'Failed to send OTP';
+            authAlert.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Create Account';
+            return;
+          }
+          pendingOtpEmail = email;
+          document.getElementById('otpTargetEmail').textContent = email;
+          document.getElementById('otpCodeDisplay').textContent = data.otp_code;
+          document.getElementById('stepCredentials').style.display = 'none';
+          document.getElementById('stepOtpSent').style.display = 'block';
+          updateSteps(2);
+          btn.disabled = false;
+          btn.textContent = 'Create Account';
+          startResendTimer();
+          startExpiryTimer();
+        }).catch(err => {
+          authAlert.textContent = err.message;
+          authAlert.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Create Account';
+        });
+      } else {
+        // Login: Just send OTP (no password needed)
+        fetch(`${API}/api/v1/auth/send-otp`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        }).then(async r => {
+          const data = await r.json();
+          if (!r.ok) {
+            authAlert.textContent = data.error || 'Failed to send code';
+            authAlert.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Send Code';
+            return;
+          }
+          pendingOtpEmail = email;
+          document.getElementById('otpTargetEmail').textContent = email;
+          document.getElementById('otpCodeDisplay').textContent = data.otp_code;
+          document.getElementById('stepCredentials').style.display = 'none';
+          document.getElementById('stepOtpSent').style.display = 'block';
+          updateSteps(2);
+          btn.disabled = false;
+          btn.textContent = 'Send Code';
+        }).catch(err => {
+          authAlert.textContent = err.message;
+          authAlert.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Send Code';
+        });
+      }
+    }
+
+    function step1Back() {
+      document.getElementById('stepOtpSent').style.display = 'none';
+      document.getElementById('stepCredentials').style.display = 'block';
+      updateSteps(1);
+    }
+
+    async function step2Verify() {
+      const code = document.getElementById('otpCodeInput').value.trim();
+      const btn = document.querySelector('#stepOtpSent .btn-primary');
+      if (!code) { authAlert.textContent = 'Please enter the verification code'; authAlert.style.display = 'block'; return; }
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+
+      try {
+        const r = await fetch(`${API}/api/v1/auth/verify-otp`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: pendingOtpEmail, code }),
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          authAlert.textContent = data.error || 'Invalid or expired code';
+          authAlert.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Verify Code';
+          return;
+        }
+
+        // Auto-login with tokens from verify-otp
+        accessToken = data.access_token;
+        refreshToken = data.refresh_token;
+        currentUser = { id: data.user.id, email: data.user.email, role: data.user.role };
+
+        stopTimers();
+        document.getElementById('stepOtpSent').style.display = 'none';
+        document.getElementById('stepSuccess').style.display = 'block';
+        document.getElementById('stepTokens').style.display = 'block';
+        document.getElementById('stepTokens').innerHTML = `<strong>Access Token:</strong><div class="tokenBox">${accessToken}</div><strong>Refresh Token:</strong><div class="tokenBox">${refreshToken}</div>`;
+        updateSteps(3);
+
+        setTimeout(() => {
+          enterApp();
+        }, 1500);
+      } catch (err) {
+        authAlert.textContent = err.message;
+        authAlert.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Verify Code';
+      }
+    }
+
+    function enterApp() {
+      authPage.style.display = 'none';
+      app.style.display = 'flex';
+      document.getElementById('userSection').style.display = 'block';
+      document.getElementById('userEmail').textContent = currentUser.email;
+      document.getElementById('userRole').textContent = currentUser.role;
+      document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
+      checkHealth();
+    }
+
+    // ---------- App Functions ----------
+    function showSection(name) {
+      document.querySelectorAll('.tabContent').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.navItem').forEach(n => n.classList.remove('active'));
+      document.getElementById('section-' + name).classList.add('active');
+      document.getElementById('nav' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+      document.getElementById('sectionTitle').textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    }
+
+    function addResponse(method, path, data, ok = true) {
+      const div = document.createElement('div');
+      div.className = 'resultRow';
+      const time = new Date().toLocaleTimeString();
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex:1;">
+          <span class="method ${method.toLowerCase()}">${method}</span>
+          <span style="font-size:0.8rem;color:var(--muted);">${path}</span>
+          <span style="font-size:0.75rem;color:var(--muted);margin-left:auto;">${time}</span>
+          <span class="badge ${ok ? 'badge-ok' : 'badge-err'}">${ok ? 'OK' : 'ERROR'}</span>
+        </div>
+        <div style="font-size:0.7rem;color:var(--muted);max-width:400px;word-break:break-all;" title="${JSON.stringify(data)}">
+          ${ok ? formatResponse(data) : (data.error || data.message || String(data))}
+        </div>
+      `;
+      responseLog.prepend(div);
+      while (responseLog.children.length > 20) responseLog.removeChild(responseLog.lastChild);
+    }
+
+    function formatResponse(data) {
+      if (!data) return '—';
+      if (data.status === 'ok') return `✅ ${data.status} · ${data.service} v${data.version}`;
+      if (data.status === 'tables_ready') return '✅ D1 tables ready';
+      if (data.created) return `✅ Created: "${data.name}" (id: ${data.id})`;
+      if (data.deleted) return `✅ Deleted item id: ${data.id}`;
+      if (data.otp_code) return `🔢 OTP Code: ${data.otp_code}`;
+      if (data.key) return `🔑 API Key: ${data.key}`;
+      if (data.keys && Array.isArray(data.keys)) return `📋 ${data.keys.length} key(s)`;
+      if (Array.isArray(data.items)) return `📦 ${data.count} item${data.count !== 1 ? 's' : ''}`;
+      if (data.item) return `📄 Item ${data.item.id}: "${data.item.name}"`;
+      if (typeof data === 'object') return Object.entries(data).map(([k,v]) => `${k}: ${v}`).join(' • ');
+      return String(data);
+    }
+
+    async function checkHealth() {
+      try {
+        const r = await fetch(`${API}/`);
+        const data = await r.json();
+
+        const statusTextEl = document.getElementById('statusText');
+        const statusPillEl = document.getElementById('statusPill');
+        const dashboardHealthEl = document.getElementById('dashboardHealth');
+
+        if (statusTextEl) statusTextEl.textContent = 'Online (' + data.status + ')';
+        if (statusPillEl) statusPillEl.className = 'statusPill online';
+        if (serverStatus) {
+          serverStatus.textContent = 'Online (' + data.status + ')';
+          serverStatus.style.color = 'var(--success)';
+        }
+        if (dashboardHealthEl) dashboardHealthEl.innerHTML = '<span style="color:var(--success);">✅ ' + data.status + '</span> · ' + data.service + ' v' + data.version;
+        addResponse('GET', '/', data, true);
+        return data;
+      } catch (err) {
+        const statusTextEl = document.getElementById('statusText');
+        const statusPillEl = document.getElementById('statusPill');
+        const dashboardHealthEl = document.getElementById('dashboardHealth');
+
+        if (statusTextEl) statusTextEl.textContent = 'Offline';
+        if (statusPillEl) statusPillEl.className = 'statusPill';
+        if (serverStatus) {
+          serverStatus.textContent = 'Offline';
+          serverStatus.style.color = 'var(--danger)';
+        }
+        if (dashboardHealthEl) dashboardHealthEl.innerHTML = '<span style="color:var(--danger);">❌ Offline</span>';
+        addResponse('GET', '/', { error: err.message }, false);
+        return null;
+      }
+    }
+
+    async function doLogout() {
+      accessToken = ''; refreshToken = ''; currentUser = null;
+      pendingEmail = ''; pendingPassword = ''; pendingOtpEmail = '';
+      authPage.style.display = 'flex';
+      app.style.display = 'none';
+      setMode('signup');
+    }
+
+    async function doCreateApiKey() {
+      const name = document.getElementById('keyName').value.trim();
+      const perms = document.getElementById('keyPerms').value.split(',').map(s => s.trim()).filter(Boolean);
+      const expires = document.getElementById('keyExpires').value.trim();
+      const res = document.getElementById('apiKeyResult');
+      res.innerHTML = 'Creating key...';
+      try {
+        const r = await fetch(`${API}/api/v1/auth/api-keys`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+          body: JSON.stringify({ name, permissions: perms, expires_in_days: expires ? parseInt(expires) : undefined }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          res.innerHTML = `<span style="color:var(--success);">✅ Key created: ${data.name}</span>`;
+          document.getElementById('apiKeyDisplay').innerHTML = `<strong>Key (save now!):</strong><div class="tokenBox">${data.key}</div><strong>Permissions:</strong> ${data.permissions.join(', ')}`;
+          doListApiKeys();
+        } else {
+          res.innerHTML = `<span style="color:var(--danger);">❌ ${data.error}</span>`;
+        }
+        addResponse('POST', '/api/v1/auth/api-keys', data, r.ok);
+      } catch (err) {
+        res.innerHTML = `<span style="color:var(--danger);">❌ ${err.message}</span>`;
+        addResponse('POST', '/api/v1/auth/api-keys', { error: err.message }, false);
+      }
+    }
+
+    async function doListApiKeys() {
+      const container = document.getElementById('apiKeysList');
+      container.innerHTML = '<div style="color:var(--muted);">Loading...</div>';
+      try {
+        const r = await fetch(`${API}/api/v1/auth/api-keys`, { headers: { 'Authorization': 'Bearer ' + accessToken } });
+        const data = await r.json();
+        if (!r.ok) { container.innerHTML = `<span style="color:var(--danger);">❌ ${data.error}</span>`; addResponse('GET', '/api/v1/auth/api-keys', data, false); return; }
+        const keys = data.keys || [];
+        if (keys.length === 0) {
+          container.innerHTML = '<div class="empty">No API keys yet. Create one above.</div>';
+        } else {
+          let html = '<table><thead><tr><th>Name</th><th>Key (masked)</th><th>Permissions</th><th>Expires</th><th>Action</th></tr></thead><tbody>';
+          keys.forEach(k => {
+            html += `<tr>
+              <td><strong>${k.name}</strong></td>
+              <td><span class="maskedKey">${k.key_prefix}</span></td>
+              <td><span class="badge badge-info">${k.permissions.join(',')}</span></td>
+              <td>${k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never'}</td>
+              <td><button class="btn-danger btn-sm" onclick="doRevokeApiKeyById('${k.id}')">Revoke</button></td>
+            </tr>`;
+          });
+          html += '</tbody></table>';
+          container.innerHTML = html;
+        }
+        addResponse('GET', '/api/v1/auth/api-keys', { count: keys.length }, true);
+      } catch (err) {
+        container.innerHTML = `<span style="color:var(--danger);">❌ ${err.message}</span>`;
+        addResponse('GET', '/api/v1/auth/api-keys', { error: err.message }, false);
+      }
+    }
+
+    async function doRevokeApiKeyById(id) {
+      const res = document.getElementById('apiKeyResult');
+      res.innerHTML = 'Revoking...';
+      try {
+        const r = await fetch(`${API}/api/v1/auth/api-keys/${id}`, {
+          method: 'DELETE', headers: { 'Authorization': 'Bearer ' + accessToken },
+        });
+        const data = await r.json();
+        res.innerHTML = r.ok ? `<span style="color:var(--success);">✅ Key revoked</span>` : `<span style="color:var(--danger);">❌ ${data.error}</span>`;
+        addResponse('DELETE', `/api/v1/auth/api-keys/${id}`, data, r.ok);
+        if (r.ok) doListApiKeys();
+      } catch (err) {
+        res.innerHTML = `<span style="color:var(--danger);">❌ ${err.message}</span>`;
+        addResponse('DELETE', `/api/v1/auth/api-keys/${id}`, { error: err.message }, false);
+      }
+    }
+
+    async function doProjectAlpha() {
+      const res = document.getElementById('projectAlphaResult');
+      res.innerHTML = 'Fetching...';
+      try {
+        const r = await fetch(`${API}/api/v1/project-alpha`, { headers: { 'Authorization': 'Bearer ' + accessToken } });
+        const data = await r.json();
+        res.innerHTML = r.ok ? `<span style="color:var(--success);">✅ Auth: ${data.authenticated ? 'yes' : 'no'} · User: ${data.user ? data.user.email : 'none'} · Service: ${data.service ? data.service.name : 'none'}</span>` : `<span style="color:var(--danger);">❌ ${data.error}</span>`;
+        addResponse('GET', '/api/v1/project-alpha', data, r.ok);
+      } catch (err) {
+        res.innerHTML = `<span style="color:var(--danger);">❌ ${err.message}</span>`;
+        addResponse('GET', '/api/v1/project-alpha', { error: err.message }, false);
+      }
+    }
+
+    async function doProjectBeta() {
+      const res = document.getElementById('projectBetaResult');
+      res.innerHTML = 'Fetching...';
+      try {
+        const r = await fetch(`${API}/api/v1/project-beta`, { headers: { 'Authorization': 'Bearer ' + accessToken } });
+        const data = await r.json();
+        res.innerHTML = r.ok ? `<span style="color:var(--success);">✅ Auth: ${data.authenticated ? 'yes' : 'no'} · User: ${data.user ? data.user.email : 'none'} · Service: ${data.service ? data.service.name : 'none'}</span>` : `<span style="color:var(--danger);">❌ ${data.error}</span>`;
+        addResponse('GET', '/api/v1/project-beta', data, r.ok);
+      } catch (err) {
+        res.innerHTML = `<span style="color:var(--danger);">❌ ${err.message}</span>`;
+        addResponse('GET', '/api/v1/project-beta', { error: err.message }, false);
+      }
+    }
+
+    async function doInitDb() {
+      const res = document.getElementById('initDbResult');
+      res.innerHTML = 'Initializing...';
+      try {
+        const r = await fetch(`${API}/api/v1/db/_init`);
+        const data = await r.json();
+        res.innerHTML = `<span style="color:var(--success);">✅ ${data.status}</span>`;
+        addResponse('POST', '/api/v1/db/_init', data, true);
+        doListItems();
+      } catch (err) {
+        res.innerHTML = `<span style="color:var(--danger);">❌ ${err.message}</span>`;
+        addResponse('POST', '/api/v1/db/_init', { error: err.message }, false);
+      }
+    }
+
+    async function doListItems() {
+      const body = document.getElementById('dbItemsBody');
+      const countEl = document.getElementById('dbItemCount');
+      body.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">Loading...</td></tr>';
+      try {
+        const r = await fetch(`${API}/api/v1/db/items`);
+        const data = await r.json();
+        const items = data.items || [];
+        countEl.textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
+        body.innerHTML = '';
+        if (items.length === 0) { body.innerHTML = '<tr><td colspan="4" class="empty">No items yet.</td></tr>'; return; }
+        items.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><span style="font-family:monospace;font-size:0.8rem;color:var(--accent);">#${item.id}</span></td><td><strong>${escapeHtml(item.name)}</strong></td><td style="color:var(--muted);font-size:0.8rem;">${item.created_at}</td><td><button class="btn-danger btn-sm" onclick="doDeleteItem(${item.id})">Delete</button></td>`;
+          body.appendChild(tr);
+        });
+        addResponse('GET', '/api/v1/db/items', { count: items.length }, true);
+      } catch (err) {
+        body.innerHTML = `<tr><td colspan="4" style="color:var(--danger);">❌ ${err.message}</td></tr>`;
+        addResponse('GET', '/api/v1/db/items', { error: err.message }, false);
+      }
+    }
+
+    async function doCreateItem() {
+      const name = document.getElementById('dbItemName').value.trim();
+      const res = document.getElementById('dbCreateResult');
+      res.innerHTML = 'Creating...';
+      try {
+        const r = await fetch(`${API}/api/v1/db/items`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        const data = await r.json();
+        res.innerHTML = `<span style="color:var(--success);">✅ "${data.name}" created (id: ${data.id})</span>`;
+        document.getElementById('dbItemName').value = '';
+        addResponse('POST', '/api/v1/db/items', data, true);
+        doListItems();
+      } catch (err) {
+        res.innerHTML = `<span style="color:var(--danger);">❌ ${err.message}</span>`;
+        addResponse('POST', '/api/v1/db/items', { error: err.message }, false);
+      }
+    }
+
+    async function doDeleteItem(id) {
+      try {
+        const r = await fetch(`${API}/api/v1/db/items/${id}`, { method: 'DELETE' });
+        const data = await r.json();
+        addResponse('DELETE', `/api/v1/db/items/${id}`, data, true);
+        doListItems();
+      } catch (err) {
+        addResponse('DELETE', `/api/v1/db/items/${id}`, { error: err.message }, false);
+      }
+    }
+
+    function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+    // Initialize
+    setMode('signup');
+    checkHealth();
+    setInterval(checkHealth, 30000);
+  </script>
+</body>
+</html>
